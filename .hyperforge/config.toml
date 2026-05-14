@@ -1,0 +1,7 @@
+org = "hypermemetic"
+forges = [
+    "github",
+    "codeberg",
+]
+visibility = "public"
+description = "Umbrella crate for Plexus RPC. Schema-driven streaming JSON-RPC for distributed systems in Rust + Haskell."
