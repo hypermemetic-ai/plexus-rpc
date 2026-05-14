@@ -1,0 +1,84 @@
+[package]
+name = "plexus-rpc"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Umbrella crate for Plexus RPC: re-exports plexus-auth-core, plexus-core, plexus-macros, and (optionally) plexus-transport at version-compatible pins, plus a capability manifest backends embed in _info."
+repository = "https://github.com/plexus-rpc/plexus"
+homepage = "https://github.com/plexus-rpc/plexus"
+keywords = ["rpc", "jsonrpc", "websocket", "streaming"]
+categories = ["network-programming", "asynchronous"]
+
+# Why this exists:
+#
+# Consumers (substrate, mneme-substrate, plexus-trak, downstream backends) need
+# core + macros + auth-core at version-compatible pins. Tracking three separate
+# version bumps across coordinated releases is error-prone. `plexus-rpc` is the
+# one-line dependency: `cargo add plexus-rpc` pins the verified-compatible set.
+#
+# The crate also exposes a `Capabilities` const so backends can embed it in
+# _info; synapse + synapse-cc branch on capabilities rather than guessing from
+# version strings. See plans/UMB/UMB-1.md in plexus-transport for the full
+# design rationale.
+
+[features]
+# Default: the everyday backend deps. macros and core are always wanted (per
+# the umbrella's reason for existing); auth-core ships with them because it
+# carries the sealed primitives core re-exports. Transport is opt-in because
+# embedded / WASM / test-only consumers don't always need a server.
+default = ["transport"]
+
+# Bring in plexus-transport (the WebSocket / HTTP / SSE server runtime).
+# Drop this if you're only using the type / dispatch surface (e.g. embedded
+# test fixtures, ahead-of-time codegen tools).
+transport = ["dep:plexus-transport"]
+
+[dependencies]
+# Always required — the umbrella's reason for being is to pin these together.
+plexus-auth-core = { path = "../plexus-auth-core", version = "0.1" }
+plexus-core      = { path = "../plexus-core",      version = "0.5" }
+plexus-macros    = { path = "../plexus-macros",    version = "0.5" }
+
+# Optional — see the `transport` feature flag.
+plexus-transport = { path = "../plexus-transport", version = "0.3", optional = true }
+
+# Serde for the Capabilities manifest (it serializes into _info).
+serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+serde_json = "1.0"
+
+# For the examples in `examples/`. Pinned to versions compatible with the
+# workspace and the published subcrates.
+anyhow = "1.0"
+async-stream = "0.3"
+futures = "0.3"
+schemars = { version = "1.1", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Examples reference `plexus_core` and `plexus_macros` directly at the
+# crate root because the procedural macros emit `::plexus_core::...` and
+# `::plexus_macros::...` paths. Until plexus-macros learns to detect the
+# `plexus-rpc` umbrella dep and emit re-export paths, examples need these
+# as direct dev-deps. Library consumers depending only on `plexus-rpc`
+# get the same surface via `plexus_rpc::core` and `plexus_rpc::macros`.
+plexus-core = { path = "../plexus-core", version = "0.5" }
+plexus-macros = { path = "../plexus-macros", version = "0.5" }
+
+# Macro-emission deps. The `#[plexus_macros::activation]` expansion
+# references `::jsonrpsee::*`, `::async_trait::async_trait`, and
+# `::uuid::Uuid` directly at the consumer's crate root. Library users
+# depending on `plexus-rpc` for production code need these as direct
+# deps too until plexus-macros learns to emit umbrella-qualified paths.
+async-trait = "0.1"
+jsonrpsee = { version = "0.26", features = ["server", "macros"] }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Examples register with the registry by binding 4444 by default; the
+# server lives behind the `transport` feature so the example only
+# compiles when transport is on (the default).
+[[example]]
+name = "echo"
+required-features = ["transport"]
