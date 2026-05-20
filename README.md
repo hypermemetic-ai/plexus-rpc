@@ -19,7 +19,7 @@ A working server in one file. Run it; talk to it from the [synapse](https://gith
 // examples/echo.rs
 use async_stream::stream;
 use futures::Stream;
-use plexus_rpc::core::plexus::DynamicHub;
+use plexus_core::plexus::DynamicHub;
 use plexus_rpc::transport::TransportServer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -72,6 +72,8 @@ async fn main() -> anyhow::Result<()> {
         .serve().await
 }
 ```
+
+Note: the `DynamicHub` import resolves through `plexus_core` directly (as the shipped `examples/echo.rs` does). Macro-emitted code expects direct `plexus_core` / `plexus_macros` dependencies in scope, so the umbrella `plexus_rpc::core::plexus` re-export path does not work for that hub type.
 
 ```bash
 $ cargo run --example echo
@@ -172,7 +174,7 @@ The umbrella ships the AUTHZ wave-2 primitives. Each is opt-in — your existing
 
 - **Auth capability advertisement** — `DynamicHub::with_auth_capabilities(...)` makes `_info` describe your supported mechanisms (Bearer / Cookie / OIDC / Anonymous) so generic clients can discover them.
 - **Sealed identity** — `AuthContext`, `Principal`, `VerifiedUser` are sealed at the crate boundary; activation code receives references, never constructs them.
-- **Credentials as return values** — a method can return `Credential<T>` from any response struct. The framework intercepts at the serialization boundary, replaces the value with a `{"$credential": "<id>"}` sentinel, routes the real value through a sidecar, and (with `attach_as(cookie = "...")`) projects it to a `Set-Cookie` header. Generated TypeScript/Rust clients auto-store and auto-attach.
+- **Credentials as return values** — a method can return `Credential<T>` from any response struct. The framework intercepts at the serialization boundary, replaces the value with a `{"$credential": "<id>"}` sentinel, routes the real value through a sidecar, and (with `attach_as = "cookie:<name>"`, e.g. `attach_as = "header:authorization"`) projects it to a `Set-Cookie` / response header. Generated TypeScript/Rust clients auto-store and auto-attach.
 - **Tenant isolation** — `Tenant` is a sealed identity primitive; `ClaimTenantResolver` derives it from a JWT claim; `Tenanted<S>` + `Scoped<'a, S>` wrap your storage in a tenant boundary the type system enforces.
 - **Forwarding policy** — `DynamicHub::with_forward_policy(namespace, policy)` declares how the caller's identity propagates on cross-boundary calls (`IdentityOnly`, `PassThrough`, `Anonymous`, or your own).
 - **Audit** — `AuditRecord` + `AuditSink` trait + `TracingAuditSink` default sink emits to the `plexus::audit` tracing target.
@@ -204,18 +206,14 @@ See [`synapse-cc`](https://github.com/hypermemetic/synapse-cc) for the orchestra
 
 ## Examples
 
-The `examples/` directory has a small set of runnable servers:
+The `examples/` directory has a runnable server:
 
 - `examples/echo.rs` — the minimal hello-world above
-- `examples/calculator.rs` — multi-method activation with doc-comment-derived params
-- `examples/credentials.rs` — a `login` method returning `Credential<SessionToken>` end-to-end
 
-Each binds to `127.0.0.1:4444` by default so the bare `synapse` invocation finds it.
+It binds to `127.0.0.1:4444` by default so the bare `synapse` invocation finds it.
 
 ```bash
 cargo run --example echo
-cargo run --example calculator
-cargo run --example credentials
 ```
 
 ## What plexus-rpc is NOT

@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 description = "Umbrella crate for Plexus RPC: re-exports plexus-auth-core, plexus-core, plexus-macros, and (optionally) plexus-transport at version-compatible pins, plus a capability manifest backends embed in _info."
-repository = "https://github.com/plexus-rpc/plexus"
-homepage = "https://github.com/plexus-rpc/plexus"
+repository = "https://github.com/hypermemetic/plexus-rpc"
+homepage = "https://github.com/hypermemetic/plexus-rpc"
 keywords = ["rpc", "jsonrpc", "websocket", "streaming"]
 categories = ["network-programming", "asynchronous"]
 
@@ -32,6 +32,12 @@ default = ["transport"]
 # Drop this if you're only using the type / dispatch surface (e.g. embedded
 # test fixtures, ahead-of-time codegen tools).
 transport = ["dep:plexus-transport"]
+
+# Forwarding features so umbrella consumers don't need a direct
+# plexus-transport dep just to flip a transport sub-feature.
+mcp-gateway = ["transport", "plexus-transport/mcp-gateway"]
+http-gateway = ["transport", "plexus-transport/http-gateway"]
+sqlite-sessions = ["transport", "plexus-transport/sqlite-sessions"]
 
 [dependencies]
 # Always required — the umbrella's reason for being is to pin these together.
