@@ -43,7 +43,7 @@ sqlite-sessions = ["transport", "plexus-transport/sqlite-sessions"]
 # Always required — the umbrella's reason for being is to pin these together.
 plexus-auth-core = { path = "../plexus-auth-core", version = "0.1" }
 plexus-core      = { path = "../plexus-core",      version = "0.5" }
-plexus-macros    = { path = "../plexus-macros",    version = "0.5" }
+plexus-macros    = { path = "../plexus-macros",    version = "0.6" }
 
 # Optional — see the `transport` feature flag.
 plexus-transport = { path = "../plexus-transport", version = "0.3", optional = true }
@@ -71,7 +71,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # as direct dev-deps. Library consumers depending only on `plexus-rpc`
 # get the same surface via `plexus_rpc::core` and `plexus_rpc::macros`.
 plexus-core = { path = "../plexus-core", version = "0.5" }
-plexus-macros = { path = "../plexus-macros", version = "0.5" }
+plexus-macros = { path = "../plexus-macros", version = "0.6" }
 
 # Macro-emission deps. The `#[plexus_macros::activation]` expansion
 # references `::jsonrpsee::*`, `::async_trait::async_trait`, and
