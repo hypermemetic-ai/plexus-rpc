@@ -1,13 +1,23 @@
 # plexus-rpc
 
-**One dependency. Schema-driven RPC for distributed systems in Rust + Haskell.**
+**Two dependencies. Schema-driven RPC for distributed systems in Rust + Haskell.**
 
-`plexus-rpc` is the umbrella crate for the Plexus RPC framework. Add one line to your `Cargo.toml` and you get the verified-compatible set: dispatch core, procedural macros, sealed identity / credential / tenant / audit primitives, and the WebSocket / HTTP / stdio server runtime.
+`plexus-rpc` is the umbrella crate for the Plexus RPC framework. Add two lines to your `Cargo.toml` and you get the verified-compatible set: dispatch core, procedural macros, sealed identity / credential / tenant / audit primitives, and the WebSocket / HTTP / stdio server runtime.
 
 ```toml
 [dependencies]
-plexus-rpc = "0.1"
+plexus-rpc = "0.2"
+jsonrpsee = { version = "0.26", features = ["server", "macros"] }
 ```
+
+Why two and not one? `plexus-macros` resolves every dependency its expansions
+emit (`uuid`, `serde`, `serde_json`, `schemars`, `futures`, `tokio`,
+`async-trait`) through `plexus_rpc::__deps` re-exports, so none of those need
+to be in your manifest. The single exception is `jsonrpsee`: plexus-macros
+delegates server-trait generation to jsonrpsee's own `#[rpc]` proc-macro,
+which looks `jsonrpsee` up in *your* Cargo.toml and hard-errors if it isn't
+there. Inlining that expansion (true one-dependency) is a tracked follow-up.
+The version must stay semver-compatible with the umbrella's pin (`0.26`).
 
 Define methods in plain Rust. The macro extracts JSON Schema from your signatures and rustdoc, registers handlers, and lets `synapse` discover the whole surface at runtime. No route tables, no schema files, no codegen step.
 
@@ -73,7 +83,24 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
-Note: the `DynamicHub` import resolves through `plexus_core` directly (as the shipped `examples/echo.rs` does). Macro-emitted code expects direct `plexus_core` / `plexus_macros` dependencies in scope, so the umbrella `plexus_rpc::core::plexus` re-export path does not work for that hub type.
+Note: the example above (like the shipped `examples/echo.rs`) uses the
+direct-deps layout — `plexus_core`, `futures`, `serde`, `schemars`,
+`async_stream`, `tokio` imported at the crate root — which still works
+unchanged. In the two-dependency umbrella layout, the same surface resolves
+through the re-exports instead:
+
+- `plexus_rpc::core::plexus::DynamicHub`, `plexus_rpc::macros::activation` —
+  macro-emitted code detects the umbrella and resolves `plexus-core` /
+  third-party paths through it automatically.
+- Your own event enums: derive through the re-exports and point the derive
+  support code at them —
+  `#[derive(plexus_rpc::__deps::serde::Serialize, plexus_rpc::__deps::schemars::JsonSchema)]`
+  plus `#[serde(crate = "plexus_rpc::__deps::serde")]` and
+  `#[schemars(crate = "plexus_rpc::__deps::schemars")]`.
+- `#[tokio::main]` is the one macro that cannot resolve through a re-export
+  (it emits bare `tokio` paths); use
+  `plexus_rpc::__deps::tokio::runtime::Builder` for `main`, or add `tokio`
+  as a direct dependency.
 
 ```bash
 $ cargo run --example echo
@@ -135,7 +162,7 @@ The umbrella re-exports four crates as namespaced modules:
 Drop the `transport` feature when you're building ahead-of-time codegen / embedded / WASM consumers that only need the type and dispatch surface:
 
 ```toml
-plexus-rpc = { version = "0.1", default-features = false }
+plexus-rpc = { version = "0.2", default-features = false }
 ```
 
 ## The doc-comment-first method shape

@@ -1,6 +1,9 @@
 [package]
 name = "plexus-rpc"
-version = "0.1.0"
+# 0.2.0 (unpublished): adds the `__deps` re-export module consumed by
+# plexus-macros 0.6 umbrella-qualified emission (Z2H-2). Minor bump —
+# additive public surface (`__deps`) + promoted dependencies.
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 description = "Umbrella crate for Plexus RPC: re-exports plexus-auth-core, plexus-core, plexus-macros, and (optionally) plexus-transport at version-compatible pins, plus a capability manifest backends embed in _info."
@@ -48,39 +51,44 @@ plexus-macros    = { path = "../plexus-macros",    version = "0.6" }
 # Optional — see the `transport` feature flag.
 plexus-transport = { path = "../plexus-transport", version = "0.3", optional = true }
 
-# Serde for the Capabilities manifest (it serializes into _info).
+# Z2H-2: macro-emission dependencies, re-exported through `__deps` so that
+# plexus-macros 0.6 can emit `::plexus_rpc::__deps::<crate>::...` paths.
+# A consumer depending only on `plexus-rpc` (+ `jsonrpsee`, see below)
+# compiles macro-annotated activations without naming any of these.
+#
+# `jsonrpsee` is re-exported too, BUT consumers still need it as a direct
+# dependency: jsonrpsee's own `#[rpc]` proc-macro (which plexus-macros
+# delegates server-trait generation to) runs its own lookup against the
+# CONSUMER's Cargo.toml and hard-errors if `jsonrpsee` isn't listed there.
+# Inlining that expansion into plexus-macros (true 1-dep) is a noted
+# follow-up to Z2H-2.
+anyhow = "1.0"
+async-stream = "0.3"
+async-trait = "0.1"
+futures = "0.3"
+jsonrpsee = { version = "0.26", features = ["server", "macros"] }
+schemars = { version = "1.1", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync"] }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Serde for the Capabilities manifest (it serializes into _info) and for
+# the `__deps::serde` re-export (the generated method enum derives
+# Serialize/Deserialize through it).
 serde = { version = "1.0", features = ["derive"] }
 
 [dev-dependencies]
-serde_json = "1.0"
-
-# For the examples in `examples/`. Pinned to versions compatible with the
-# workspace and the published subcrates.
-anyhow = "1.0"
-async-stream = "0.3"
-futures = "0.3"
-schemars = { version = "1.1", features = ["derive"] }
-serde = { version = "1.0", features = ["derive"] }
-tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# Z2H-2 anti-rot gate (tests/z2h2_dep_reexport.rs) scaffolds consumer crates
+# into a tempdir farm.
+tempfile = "3"
 
 # Examples reference `plexus_core` and `plexus_macros` directly at the
-# crate root because the procedural macros emit `::plexus_core::...` and
-# `::plexus_macros::...` paths. Until plexus-macros learns to detect the
-# `plexus-rpc` umbrella dep and emit re-export paths, examples need these
-# as direct dev-deps. Library consumers depending only on `plexus-rpc`
-# get the same surface via `plexus_rpc::core` and `plexus_rpc::macros`.
+# crate root (today's canonical direct-consumer shape). Library consumers
+# depending only on `plexus-rpc` get the same surface via
+# `plexus_rpc::core` and `plexus_rpc::macros`.
 plexus-core = { path = "../plexus-core", version = "0.5" }
 plexus-macros = { path = "../plexus-macros", version = "0.6" }
-
-# Macro-emission deps. The `#[plexus_macros::activation]` expansion
-# references `::jsonrpsee::*`, `::async_trait::async_trait`, and
-# `::uuid::Uuid` directly at the consumer's crate root. Library users
-# depending on `plexus-rpc` for production code need these as direct
-# deps too until plexus-macros learns to emit umbrella-qualified paths.
-async-trait = "0.1"
-jsonrpsee = { version = "0.26", features = ["server", "macros"] }
-uuid = { version = "1.6", features = ["v4", "serde"] }
 
 # Examples register with the registry by binding 4444 by default; the
 # server lives behind the `transport` feature so the example only

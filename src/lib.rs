@@ -100,6 +100,40 @@ pub use plexus_macros as macros;
 pub use plexus_transport as transport;
 
 // ---------------------------------------------------------------------------
+// Macro-emission dependency re-exports (Z2H-2).
+// ---------------------------------------------------------------------------
+
+/// Third-party crates referenced by `plexus-macros` expansions, re-exported
+/// so that umbrella consumers don't need them in their own Cargo.toml.
+///
+/// When `plexus-macros` 0.6 detects `plexus-rpc` in the consumer's manifest
+/// (via `proc-macro-crate`), its expansions resolve `jsonrpsee`, `uuid`,
+/// `async_trait`, `serde`, `serde_json`, `schemars`, `futures`, and `tokio`
+/// through this module instead of the consumer's extern prelude. `anyhow`
+/// and `async_stream` are included for consumer ergonomics (the canonical
+/// activation examples use them) even though no macro emits them.
+///
+/// Hidden because it is macro plumbing, not API: user code should import
+/// these crates directly (or via their own dependency declarations) rather
+/// than reaching through `plexus_rpc::__deps`. Exception: derive attributes
+/// on user event types in umbrella-only crates, e.g.
+/// `#[serde(crate = "plexus_rpc::__deps::serde")]` /
+/// `#[schemars(crate = "plexus_rpc::__deps::schemars")]`.
+#[doc(hidden)]
+pub mod __deps {
+    pub use ::anyhow;
+    pub use ::async_stream;
+    pub use ::async_trait;
+    pub use ::futures;
+    pub use ::jsonrpsee;
+    pub use ::schemars;
+    pub use ::serde;
+    pub use ::serde_json;
+    pub use ::tokio;
+    pub use ::uuid;
+}
+
+// ---------------------------------------------------------------------------
 // Capability manifest (UMB-3).
 // ---------------------------------------------------------------------------
 
