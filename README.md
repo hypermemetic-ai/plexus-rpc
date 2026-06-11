@@ -10,6 +10,12 @@ plexus-rpc = "0.2"
 jsonrpsee = { version = "0.26", features = ["server", "macros"] }
 ```
 
+> **Publish status (2026-06-11):** crates.io has `plexus-rpc 0.1.0` only —
+> `0.2.0` (this checkout: the `__deps` re-export module and the two-dependency
+> story) is not yet published. Until it is, depend on this repo by path or
+> git, or use the published `0.1.0` with direct `plexus-core` /
+> `plexus-macros` pins (the layout `axon new` emits today).
+
 Why two and not one? `plexus-macros` resolves every dependency its expansions
 emit (`uuid`, `serde`, `serde_json`, `schemars`, `futures`, `tokio`,
 `async-trait`) through `plexus_rpc::__deps` re-exports, so none of those need
@@ -41,16 +47,17 @@ pub enum EchoEvent {
     Echo { message: String, count: u32 },
 }
 
+#[derive(Clone)]
 pub struct Echo;
 
-#[plexus_rpc::macros::activation(
+#[plexus_macros::activation(
     namespace = "echo",
     version = "1.0.0",
     description = "Echo messages back"
 )]
 impl Echo {
     /// Echo a message back the specified number of times.
-    #[plexus_rpc::macros::method]
+    #[plexus_macros::method]
     async fn echo(
         &self,
         /// The message to echo
@@ -60,18 +67,36 @@ impl Echo {
     ) -> impl Stream<Item = EchoEvent> + Send + 'static {
         stream! {
             for i in 0..count {
-                yield EchoEvent::Echo { message: message.clone(), count: i + 1 };
+                yield EchoEvent::Echo {
+                    message: message.clone(),
+                    count: i + 1,
+                };
             }
+        }
+    }
+
+    /// Echo a message once.
+    #[plexus_macros::method]
+    async fn once(
+        &self,
+        /// The message to echo
+        message: String,
+    ) -> impl Stream<Item = EchoEvent> + Send + 'static {
+        stream! {
+            yield EchoEvent::Echo { message, count: 1 };
         }
     }
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // The hub root name is a routing namespace — it must differ from every
-    // registered activation's namespace (registration panics on a collision;
-    // a like-named child would be unreachable). The CLI commands below use
-    // the activation namespace ("echo"); the root name stays behind the scenes.
+    tracing_subscriber::fmt::init();
+
+    // The hub root name is a routing namespace, not a label: it must differ
+    // from every registered activation's namespace, or registration panics
+    // (a like-named child would be unreachable — Z2H-8). The activation
+    // namespace ("echo") is what you type at the synapse CLI; the root name
+    // never appears in everyday invocations.
     let hub = Arc::new(DynamicHub::new("echo_hub").register(Echo));
 
     let rpc_converter = |arc| {
@@ -79,19 +104,25 @@ async fn main() -> anyhow::Result<()> {
             .map_err(|e| anyhow::anyhow!("rpc module: {e}"))
     };
 
-    println!("listening on ws://127.0.0.1:4444");
+    println!("plexus-rpc echo example");
+    println!("  ws://127.0.0.1:4444 — synapse will discover this on its default port");
+    println!("  $ synapse echo_hub echo echo --message hello --count 3");
+    println!("  Ctrl-C to stop.");
+
     TransportServer::builder(hub, rpc_converter)
         .with_websocket(4444)
-        .build().await?
-        .serve().await
+        .build()
+        .await?
+        .serve()
+        .await
 }
 ```
 
-Note: the example above (like the shipped `examples/echo.rs`) uses the
-direct-deps layout — `plexus_core`, `futures`, `serde`, `schemars`,
-`async_stream`, `tokio` imported at the crate root — which still works
-unchanged. In the two-dependency umbrella layout, the same surface resolves
-through the re-exports instead:
+Note: the shipped `examples/echo.rs` (reproduced verbatim above) uses the
+direct-deps layout — `plexus_core`, `plexus_macros`, `futures`, `serde`,
+`schemars`, `async_stream`, `tokio` imported at the crate root — which still
+works unchanged. In the two-dependency umbrella layout, the same surface
+resolves through the re-exports instead:
 
 - `plexus_rpc::core::plexus::DynamicHub`, `plexus_rpc::macros::activation` —
   macro-emitted code detects the umbrella and resolves `plexus-core` /
@@ -108,7 +139,10 @@ through the re-exports instead:
 
 ```bash
 $ cargo run --example echo
-listening on ws://127.0.0.1:4444
+plexus-rpc echo example
+  ws://127.0.0.1:4444 — synapse will discover this on its default port
+  $ synapse echo_hub echo echo --message hello --count 3
+  Ctrl-C to stop.
 ```
 
 In another terminal:
@@ -129,7 +163,13 @@ message: hello
 (The first segment is the backend — the hub root name. The rest is the
 path: activation `echo`, method `echo`.)
 
-The default `synapse` registry sits at `localhost:4444` — start your backend on that port and the CLI discovers it automatically.
+The registry endpoint defaults to `ws://127.0.0.1:4444` (override with
+`PLEXUS_REGISTRY_URL`) — start your backend on that port and the bare
+invocation above finds it: synapse probes the endpoint's `_info` and matches
+the hub root name even when no registry service is running there. Services
+built against current `plexus-transport` also self-register with the registry
+on boot (name/host/port), so backends on other ports resolve by bare name
+too; opt out with `PLEXUS_NO_REGISTRY=1` or `.without_registry()`.
 
 ## Installing synapse
 
