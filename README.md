@@ -10,12 +10,6 @@ plexus-rpc = "0.2"
 jsonrpsee = { version = "0.26", features = ["server", "macros"] }
 ```
 
-> **Publish status (2026-06-11):** crates.io has `plexus-rpc 0.1.0` only —
-> `0.2.0` (this checkout: the `__deps` re-export module and the two-dependency
-> story) is not yet published. Until it is, depend on this repo by path or
-> git, or use the published `0.1.0` with direct `plexus-core` /
-> `plexus-macros` pins (the layout `axon new` emits today).
-
 Why two and not one? `plexus-macros` resolves every dependency its expansions
 emit (`uuid`, `serde`, `serde_json`, `schemars`, `futures`, `tokio`,
 `async-trait`) through `plexus_rpc::__deps` re-exports, so none of those need

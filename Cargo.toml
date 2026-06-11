@@ -44,12 +44,12 @@ sqlite-sessions = ["transport", "plexus-transport/sqlite-sessions"]
 
 [dependencies]
 # Always required — the umbrella's reason for being is to pin these together.
-plexus-auth-core = { path = "../plexus-auth-core", version = "0.1" }
-plexus-core      = { path = "../plexus-core",      version = "0.5" }
+plexus-auth-core = { path = "../plexus-auth-core", version = "0.2" }
+plexus-core      = { path = "../plexus-core",      version = "0.6" }
 plexus-macros    = { path = "../plexus-macros",    version = "0.6" }
 
 # Optional — see the `transport` feature flag.
-plexus-transport = { path = "../plexus-transport", version = "0.3", optional = true }
+plexus-transport = { path = "../plexus-transport", version = "0.4", optional = true }
 
 # Z2H-2: macro-emission dependencies, re-exported through `__deps` so that
 # plexus-macros 0.6 can emit `::plexus_rpc::__deps::<crate>::...` paths.
@@ -87,7 +87,7 @@ tempfile = "3"
 # crate root (today's canonical direct-consumer shape). Library consumers
 # depending only on `plexus-rpc` get the same surface via
 # `plexus_rpc::core` and `plexus_rpc::macros`.
-plexus-core = { path = "../plexus-core", version = "0.5" }
+plexus-core = { path = "../plexus-core", version = "0.6" }
 plexus-macros = { path = "../plexus-macros", version = "0.6" }
 
 # Examples register with the registry by binding 4444 by default; the
