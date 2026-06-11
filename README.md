@@ -68,7 +68,11 @@ impl Echo {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let hub = Arc::new(DynamicHub::new("echo").register(Echo));
+    // The hub root name is a routing namespace — it must differ from every
+    // registered activation's namespace (registration panics on a collision;
+    // a like-named child would be unreachable). The CLI commands below use
+    // the activation namespace ("echo"); the root name stays behind the scenes.
+    let hub = Arc::new(DynamicHub::new("echo_hub").register(Echo));
 
     let rpc_converter = |arc| {
         DynamicHub::arc_into_rpc_module(arc)
@@ -110,16 +114,20 @@ listening on ws://127.0.0.1:4444
 In another terminal:
 
 ```bash
-$ synapse echo echo --message "hello" --count 3
-message: hello
+$ synapse echo_hub echo echo --message "hello" --count 3
 count: 1
-
+event: echo
 message: hello
 count: 2
-
+event: echo
 message: hello
 count: 3
+event: echo
+message: hello
 ```
+
+(The first segment is the backend — the hub root name. The rest is the
+path: activation `echo`, method `echo`.)
 
 The default `synapse` registry sits at `localhost:4444` — start your backend on that port and the CLI discovers it automatically.
 
@@ -142,10 +150,9 @@ cd plexus-synapse && cabal install
 With the binary on your `PATH`:
 
 ```bash
-$ synapse                # lists registered backends at localhost:4444
-$ synapse echo           # lists the methods on the echo activation
-$ synapse --schema echo  # raw JSON Schema for the activation
-$ synapse --emit-ir echo > echo.ir.json   # IR for codegen
+$ synapse echo_hub echo           # lists the methods on the echo activation
+$ synapse --schema echo_hub echo  # raw JSON Schema for the activation
+$ synapse --emit-ir echo_hub > echo.ir.json   # IR for codegen
 ```
 
 ## What's in the box

@@ -88,7 +88,7 @@ fn main() {
         assert_eq!(Echo::PLUGIN_ID, Echo.plugin_id());
         let schema = echo.plugin_schema();
         assert!(schema.methods.iter().any(|m| m.name == "echo"));
-        let _hub = DynamicHub::new("echo").register(Echo);
+        let _hub = DynamicHub::new("echo_hub").register(Echo); // root != activation ns (Z2H-8)
         println!("umbrella-only consumer green");
     });
 }
@@ -154,7 +154,7 @@ async fn main() {
     assert_eq!(Echo::PLUGIN_ID, Echo.plugin_id());
     let schema = echo.plugin_schema();
     assert!(schema.methods.iter().any(|m| m.name == "echo"));
-    let _hub = DynamicHub::new("echo").register(Echo);
+    let _hub = DynamicHub::new("echo_hub").register(Echo); // root != activation ns (Z2H-8)
     println!("direct-deps consumer green");
 }
 "##;

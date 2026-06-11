@@ -9,9 +9,13 @@
 //! Then, in another terminal:
 //!
 //! ```bash
-//! synapse echo echo --message "hello" --count 3
-//! synapse echo once --message "hi"
+//! synapse echo_hub echo echo --message "hello" --count 3
+//! synapse echo_hub echo once --message "hi"
 //! ```
+//!
+//! (`echo_hub` is the backend / hub root name; `echo` is the activation
+//! namespace; the final segment is the method. The root name must differ
+//! from every activation namespace — see Z2H-8.)
 //!
 //! The server binds to `127.0.0.1:4444` — the default port synapse looks
 //! for when no `--port` flag is set, so the bare invocations above find
@@ -76,7 +80,12 @@ impl Echo {
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
-    let hub = Arc::new(DynamicHub::new("echo").register(Echo));
+    // The hub root name is a routing namespace, not a label: it must differ
+    // from every registered activation's namespace, or registration panics
+    // (a like-named child would be unreachable — Z2H-8). The activation
+    // namespace ("echo") is what you type at the synapse CLI; the root name
+    // never appears in everyday invocations.
+    let hub = Arc::new(DynamicHub::new("echo_hub").register(Echo));
 
     let rpc_converter = |arc| {
         DynamicHub::arc_into_rpc_module(arc)
@@ -85,7 +94,7 @@ async fn main() -> anyhow::Result<()> {
 
     println!("plexus-rpc echo example");
     println!("  ws://127.0.0.1:4444 — synapse will discover this on its default port");
-    println!("  $ synapse echo echo --message hello --count 3");
+    println!("  $ synapse echo_hub echo echo --message hello --count 3");
     println!("  Ctrl-C to stop.");
 
     TransportServer::builder(hub, rpc_converter)
