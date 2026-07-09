@@ -209,6 +209,12 @@ pub const CAPABILITIES: Capabilities = Capabilities {
 ///   (AUTHZ-MACRO-PARAM-DOC-1).
 /// - `"optional_auth"` — `auth: Option<&AuthContext>` codegen support
 ///   (AUTHZ-MACRO-OPTIONAL-AUTH-1).
+/// - `"unified_schema"` — PROT schema unification (PLX-13): every `.schema`
+///   fetch at any tree depth returns the single `PluginSchema` (`SchemaResult`
+///   is `Plugin`-only). The former per-method `SchemaResult::Method` variant,
+///   the `{method}.schema` strip-suffix shortcut, and the `.method_schema`
+///   content-type no longer exist — per-method detail is read from `methods[]`.
+///   Tooling can rely on `".schema" isSuffixOf content_type` always matching.
 const FEATURES: &[&str] = &[
     "auth_capabilities",
     "forward_policy",
@@ -217,6 +223,7 @@ const FEATURES: &[&str] = &[
     "audit",
     "doc_comments",
     "optional_auth",
+    "unified_schema",
 ];
 
 #[cfg(test)]
