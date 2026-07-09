@@ -7,8 +7,8 @@ version = "0.2.0"
 edition = "2021"
 license = "MIT"
 description = "Umbrella crate for Plexus RPC: re-exports plexus-auth-core, plexus-core, plexus-macros, and (optionally) plexus-transport at version-compatible pins, plus a capability manifest backends embed in _info."
-repository = "https://github.com/hypermemetic/plexus-rpc"
-homepage = "https://github.com/hypermemetic/plexus-rpc"
+repository = "https://github.com/hypermemetic-ai/plexus-rpc"
+homepage = "https://github.com/hypermemetic-ai/plexus-rpc"
 keywords = ["rpc", "jsonrpc", "websocket", "streaming"]
 categories = ["network-programming", "asynchronous"]
 
