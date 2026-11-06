@@ -1,123 +1,138 @@
-//! # Plexus RPC — umbrella crate
-//!
-//! The single dependency to add when building a Plexus backend. Re-exports
-//! the verified-compatible subcrate set:
-//!
-//! - [`auth_core`] — sealed identity, credential, tenant, forwarding, and audit
-//!   primitives (`plexus-auth-core`).
-//! - [`core`] — `DynamicHub`, dispatch, `MethodSchema`, the `Activation` trait,
-//!   credential wire envelope, ChildRouter (`plexus-core`).
-//! - [`macros`] — procedural macros for activations, methods, child routers,
-//!   credentials, and auth resolvers (`plexus-macros`).
-//! - [`transport`] (feature `transport`, on by default) — WebSocket / HTTP / SSE
-//!   server runtime (`plexus-transport`).
-//!
-//! ## Why one crate
-//!
-//! Tracking three or four subcrate version bumps across coordinated releases is
-//! error-prone. Depending on `plexus-rpc` pins the whole set at once:
+//! # Plexus RPC — one dependency for a service
 //!
 //! ```toml
 //! [dependencies]
-//! plexus-rpc = "0.1"
+//! plexus-rpc = "0.8"
 //! ```
+//!
+//! That line brings the set at versions that work together, its version in
+//! lockstep with plexus-core's:
+//!
+//! - [`core`] — `DynamicHub`, dispatch, schemas, the `Activation` trait (`plexus-core`);
+//! - [`macros`] — `#[activation]`, `#[method]`, `#[child]` and the derives (`plexus-macros`),
+//!   the attribute macros also at this crate's root;
+//! - [`auth_core`] — the sealed identity, credential, grant and audit types (`plexus-auth-core`);
+//! - [`client`] — the runtime of the client an activation's macro writes (`plexus-client`);
+//! - [`transport`] (feature `transport`, on by default) — the WebSocket / HTTP / stdio
+//!   server (`plexus-transport`);
+//! - [`prelude`] — what an activation and its `main` usually name.
+//!
+//! The macros' expansions name `async_trait`, `futures`, `jsonrpsee`,
+//! `schemars`, `serde`, `serde_json`, `tokio` and `uuid`. With this crate a
+//! dependency, plexus-macros routes every one of them through
+//! [`__deps`], so an app lists none of them — only what its own code uses.
+//!
+//! ```ignore
+//! use plexus_rpc::prelude::*;
+//!
+//! #[derive(Clone)]
+//! pub struct EchoActivation;
+//!
+//! /// Say things back.
+//! #[activation(namespace = "echo", version = "1.0.0")]
+//! impl EchoActivation {
+//!     /// Say a thing back.
+//!     #[method]
+//!     async fn say(&self, /** what to say */ text: String) -> String {
+//!         text
+//!     }
+//! }
+//! ```
+//!
+//! A type of the app's own that derives serde or schemars traits names them
+//! through `__deps` when the app does not list serde itself:
+//! `#[serde(crate = "plexus_rpc::__deps::serde")]`,
+//! `#[schemars(crate = "plexus_rpc::__deps::schemars")]`.
 //!
 //! ## Capability manifest
 //!
 //! Backends embed [`CAPABILITIES`] in their `_info` response so generic clients
-//! (synapse CLI, generated SDKs, agents) can negotiate features instead of
-//! guessing from version strings. The manifest names every bundled subcrate
-//! version plus a list of named feature flags shipped in this release. See
-//! `plans/UMB/UMB-3.md` for the full design.
-//!
-//! ## Doc-comment example (current canonical shape)
-//!
-//! ```ignore
-//! use plexus_rpc::macros::{activation, method};
-//!
-//! pub struct Echo;
-//!
-//! #[activation(namespace = "echo", version = "1.0.0")]
-//! impl Echo {
-//!     /// Echo a message back the specified number of times.
-//!     #[method]
-//!     async fn echo(
-//!         &self,
-//!         /// The message to echo
-//!         message: String,
-//!         /// Number of times to repeat
-//!         count: u32,
-//!     ) -> impl futures::Stream<Item = EchoEvent> + Send + 'static {
-//!         async_stream::stream! {
-//!             for _ in 0..count {
-//!                 yield EchoEvent::Echo { message: message.clone() };
-//!             }
-//!         }
-//!     }
-//! }
-//! ```
+//! (synapse, generated SDKs, agents) can negotiate features instead of
+//! guessing from version strings.
 
 /// Plexus RPC umbrella crate version, populated at compile time.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+/// The plexus-macros version this umbrella requires (its `Cargo.toml`
+/// pin). plexus-macros is a proc-macro crate and cannot export a `VERSION`
+/// of its own.
+pub const PLEXUS_MACROS_VERSION: &str = "0.8.1";
+
 // ---------------------------------------------------------------------------
-// Subcrate re-exports.
+// The crates.
 // ---------------------------------------------------------------------------
 
-/// Sealed identity, credential, tenant, forwarding, and audit primitives.
-///
-/// Re-export of the `plexus-auth-core` crate. The types here are
-/// structurally sealed — third crates cannot fabricate `AuthContext`,
-/// `Principal`, `Credential<T>`, `Tenant`, etc. Construction is the
-/// framework's responsibility; activation code only ever receives sealed
-/// references.
+/// Sealed identity, credential, tenant, grant, forwarding and audit
+/// primitives — the `plexus-auth-core` crate.
 pub use plexus_auth_core as auth_core;
 
-/// Core dispatch and schema machinery.
-///
-/// Re-export of the `plexus-core` crate. Contains `DynamicHub`,
-/// `Activation`, `MethodSchema`, the credential wire envelope, the
-/// `ChildRouter` trait, and the `with_auth_capabilities` / `with_forward_policy`
-/// hub builders.
+/// Dispatch, schemas, the `Activation` trait and `DynamicHub` — the
+/// `plexus-core` crate.
 pub use plexus_core as core;
 
-/// Procedural macros for activations, methods, child routers, credentials,
-/// and auth resolvers.
-///
-/// Re-export of the `plexus-macros` crate. The canonical entry points are
-/// `#[plexus_rpc::macros::activation(...)]` on an `impl` block,
-/// `#[plexus_rpc::macros::method]` on each method, and
-/// `#[derive(plexus_rpc::macros::Credentials)]` on credential-bearing
-/// return types.
+/// The procedural macros — the `plexus-macros` crate. The attribute
+/// macros are also at this crate's root (`plexus_rpc::activation`).
 pub use plexus_macros as macros;
 
-/// WebSocket / HTTP / SSE server runtime (feature `transport`, default on).
-///
-/// Re-export of the `plexus-transport` crate. Drop the `transport` feature
-/// when building embedded / ahead-of-time codegen / WASM consumers that
-/// only need the type and dispatch surface.
+/// The runtime of the client `#[activation]` writes: `Transport`, the
+/// item stream, errors and (feature `client-ws`) `ws::WsTransport` — the
+/// `plexus-client` crate.
+pub use plexus_client as client;
+
+/// The WebSocket / HTTP / stdio server runtime (feature `transport`, on by
+/// default) — the `plexus-transport` crate.
 #[cfg(feature = "transport")]
 pub use plexus_transport as transport;
 
+// The attribute macros, at the root.
+#[allow(deprecated)]
+pub use plexus_macros::{activation, child, method, removed_in};
+
+/// What an activation and the `main` that serves it usually name.
+///
+/// ```ignore
+/// use plexus_rpc::prelude::*;
+/// ```
+pub mod prelude {
+    pub use plexus_macros::{activation, child, method, removed_in, Credentials, HandleEnum, PlexusRequest};
+
+    pub use plexus_core::plexus::{
+        Activation, AuthContext, BidirChannel, ChildRouter, DynamicHub, HubTransport, Input, PlexusError,
+        PlexusStream, PluginSchema, Progress,
+    };
+    /// The service an app registers its activations with and serves:
+    /// plexus-core's `DynamicHub`, by the name the ecosystem uses for it.
+    pub use plexus_core::plexus::DynamicHub as DynamicService;
+    /// A service called in process through its own routing: plexus-core's
+    /// `HubTransport`, by the name the ecosystem uses for it.
+    pub use plexus_core::plexus::HubTransport as ServiceTransport;
+
+    pub use plexus_client::{BoxFuture, BoxStream, ClientError, FromClientError, RemoteError, Transport};
+
+    #[cfg(feature = "transport")]
+    pub use plexus_transport::TransportServer;
+
+    pub use futures::{Stream, StreamExt};
+}
+
 // ---------------------------------------------------------------------------
-// Macro-emission dependency re-exports (Z2H-2).
+// The crates the macros' expansions name (Z2H-2).
 // ---------------------------------------------------------------------------
 
 /// Third-party crates referenced by `plexus-macros` expansions, re-exported
-/// so that umbrella consumers don't need them in their own Cargo.toml.
+/// so that an app depending on `plexus-rpc` needs none of them in its own
+/// Cargo.toml.
 ///
-/// When `plexus-macros` 0.6 detects `plexus-rpc` in the consumer's manifest
-/// (via `proc-macro-crate`), its expansions resolve `jsonrpsee`, `uuid`,
-/// `async_trait`, `serde`, `serde_json`, `schemars`, `futures`, and `tokio`
-/// through this module instead of the consumer's extern prelude. `anyhow`
-/// and `async_stream` are included for consumer ergonomics (the canonical
-/// activation examples use them) even though no macro emits them.
+/// When plexus-macros finds `plexus-rpc` in the app's manifest (via
+/// `proc-macro-crate`), its expansions resolve `async_trait`, `futures`,
+/// `jsonrpsee`, `schemars`, `serde`, `serde_json`, `tokio` and `uuid`
+/// through this module. `anyhow` and `async_stream` are here for the app:
+/// the usual activation writes them, no macro emits them.
 ///
-/// Hidden because it is macro plumbing, not API: user code should import
-/// these crates directly (or via their own dependency declarations) rather
-/// than reaching through `plexus_rpc::__deps`. Exception: derive attributes
-/// on user event types in umbrella-only crates, e.g.
-/// `#[serde(crate = "plexus_rpc::__deps::serde")]` /
+/// Hidden because it is macro plumbing, not API; the one place an app names
+/// it is a derive's crate attribute on a type of its own, when it does not
+/// list serde or schemars itself:
+/// `#[serde(crate = "plexus_rpc::__deps::serde")]`,
 /// `#[schemars(crate = "plexus_rpc::__deps::schemars")]`.
 #[doc(hidden)]
 pub mod __deps {
@@ -156,10 +171,8 @@ pub struct Capabilities {
     pub plexus_auth_core: &'static str,
     /// Bundled `plexus-core` version.
     pub plexus_core: &'static str,
-    /// Bundled `plexus-macros` version. `plexus-macros` is a proc-macro
-    /// crate and cannot expose a `pub const VERSION`, so the umbrella's
-    /// build script reads the dependency pin from `Cargo.toml` and
-    /// populates this at compile time.
+    /// Bundled `plexus-macros` version ([`PLEXUS_MACROS_VERSION`], the
+    /// umbrella's pin).
     pub plexus_macros: &'static str,
     /// Bundled `plexus-transport` version. `None` when the umbrella was
     /// built without the `transport` feature.
@@ -179,7 +192,7 @@ pub const CAPABILITIES: Capabilities = Capabilities {
     plexus_rpc: VERSION,
     plexus_auth_core: plexus_auth_core::VERSION,
     plexus_core: plexus_core::VERSION,
-    plexus_macros: env!("PLEXUS_MACROS_VERSION"),
+    plexus_macros: PLEXUS_MACROS_VERSION,
     #[cfg(feature = "transport")]
     plexus_transport: Some(plexus_transport::VERSION),
     #[cfg(not(feature = "transport"))]
@@ -242,8 +255,30 @@ mod tests {
         assert_eq!(CAPABILITIES.plexus_rpc, VERSION);
         assert_eq!(CAPABILITIES.plexus_auth_core, plexus_auth_core::VERSION);
         assert_eq!(CAPABILITIES.plexus_core, plexus_core::VERSION);
-        assert_eq!(CAPABILITIES.plexus_macros, env!("PLEXUS_MACROS_VERSION"));
+        assert_eq!(CAPABILITIES.plexus_macros, PLEXUS_MACROS_VERSION);
         assert!(!CAPABILITIES.features.is_empty());
+    }
+
+    /// The constant is the manifest's pin, so the manifest says what was
+    /// built against. (Run in the repository; a published crate's manifest
+    /// is cargo's normalized one.)
+    #[test]
+    fn plexus_macros_version_is_the_manifest_pin() {
+        let manifest = include_str!("../Cargo.toml");
+        let lines: Vec<&str> = manifest.lines().map(str::trim).collect();
+        let pin = format!("plexus-macros = \"{}\"", PLEXUS_MACROS_VERSION);
+        // cargo's normalized manifest: a `[dependencies.plexus-macros]` table.
+        let table = lines.windows(2).any(|w| {
+            w[0] == "[dependencies.plexus-macros]" && w[1] == format!("version = \"{}\"", PLEXUS_MACROS_VERSION)
+        });
+        assert!(lines.contains(&pin.as_str()) || table, "Cargo.toml must pin {pin}");
+    }
+
+    /// In lockstep: the umbrella's major.minor is plexus-core's.
+    #[test]
+    fn version_is_in_lockstep_with_plexus_core() {
+        let minor = |v: &str| v.split('.').take(2).collect::<Vec<_>>().join(".");
+        assert_eq!(minor(VERSION), minor(plexus_core::VERSION));
     }
 
     #[test]

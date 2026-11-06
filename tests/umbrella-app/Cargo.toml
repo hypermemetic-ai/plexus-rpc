@@ -1,0 +1,17 @@
+[package]
+name = "umbrella-app"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "PLEXUS-44: a Plexus app whose Cargo.toml lists only plexus-rpc and tokio"
+
+# The whole point: these two lines and nothing else. tests/serve_and_call.rs
+# holds the manifest to it, so a dependency added to cover a macro path that
+# escapes the umbrella fails the test instead.
+#
+# tokio is listed under another name, `rt`, so that `::tokio` is not in this
+# crate's extern prelude either: a macro expansion that names `::tokio` (or
+# any crate but `::plexus_rpc`) fails to build here.
+[dependencies]
+plexus-rpc = { path = "../..", features = ["client-ws"] }
+rt = { package = "tokio", version = "1", features = ["macros", "rt-multi-thread", "net", "time"] }

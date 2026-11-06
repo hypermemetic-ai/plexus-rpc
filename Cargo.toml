@@ -1,98 +1,67 @@
+[workspace]
+# PLEXUS-44: `tests/umbrella-app` is an app whose Cargo.toml lists only
+# plexus-rpc and tokio; it builds, serves and calls an activation, so a macro
+# path that escapes the umbrella fails its build. Not published.
+members = [".", "tests/umbrella-app"]
+
 [package]
 name = "plexus-rpc"
-# 0.2.0 (unpublished): adds the `__deps` re-export module consumed by
-# plexus-macros 0.6 umbrella-qualified emission (Z2H-2). Minor bump —
-# additive public surface (`__deps`) + promoted dependencies.
-version = "0.2.0"
+# PLEXUS-44: in lockstep with plexus-core — the one number an app bumps.
+version = "0.8.0"
 edition = "2021"
 license = "MIT"
-description = "Umbrella crate for Plexus RPC: re-exports plexus-auth-core, plexus-core, plexus-macros, and (optionally) plexus-transport at version-compatible pins, plus a capability manifest backends embed in _info."
+description = "One dependency for a Plexus RPC service: plexus-core, plexus-macros, plexus-auth-core, plexus-client and (feature `transport`) plexus-transport at compatible versions, plus every crate the macros' expansions name."
 repository = "https://github.com/hypermemetic-ai/plexus-rpc"
 homepage = "https://github.com/hypermemetic-ai/plexus-rpc"
-keywords = ["rpc", "jsonrpc", "websocket", "streaming"]
+readme = "README.md"
+keywords = ["rpc", "jsonrpc", "websocket", "streaming", "plexus"]
 categories = ["network-programming", "asynchronous"]
-
-# Why this exists:
-#
-# Consumers (substrate, mneme-substrate, plexus-trak, downstream backends) need
-# core + macros + auth-core at version-compatible pins. Tracking three separate
-# version bumps across coordinated releases is error-prone. `plexus-rpc` is the
-# one-line dependency: `cargo add plexus-rpc` pins the verified-compatible set.
-#
-# The crate also exposes a `Capabilities` const so backends can embed it in
-# _info; synapse + synapse-cc branch on capabilities rather than guessing from
-# version strings. See plans/UMB/UMB-1.md in plexus-transport for the full
-# design rationale.
+include = ["src/**/*", "Cargo.toml", "README.md", "LICENSE*"]
 
 [features]
-# Default: the everyday backend deps. macros and core are always wanted (per
-# the umbrella's reason for existing); auth-core ships with them because it
-# carries the sealed primitives core re-exports. Transport is opt-in because
-# embedded / WASM / test-only consumers don't always need a server.
-default = ["transport"]
+# A service serves: the transport is on by default. Drop it (default-features
+# = false) for a crate that only defines activations, or only calls them.
+default = ["transport", "child-ws"]
 
-# Bring in plexus-transport (the WebSocket / HTTP / SSE server runtime).
-# Drop this if you're only using the type / dispatch surface (e.g. embedded
-# test fixtures, ahead-of-time codegen tools).
+# plexus-transport: the WebSocket / HTTP / stdio server runtime.
 transport = ["dep:plexus-transport"]
-
-# Forwarding features so umbrella consumers don't need a direct
-# plexus-transport dep just to flip a transport sub-feature.
+mcp = ["transport", "plexus-transport/mcp"]
 mcp-gateway = ["transport", "plexus-transport/mcp-gateway"]
 http-gateway = ["transport", "plexus-transport/http-gateway"]
 sqlite-sessions = ["transport", "plexus-transport/sqlite-sessions"]
 
+# plexus-core's features.
+child-ws = ["plexus-core/child-ws"]
+child-wss = ["plexus-core/child-wss"]
+clap = ["plexus-core/clap"]
+
+# plexus-client over a native WebSocket (`client::ws::WsTransport`).
+client-ws = ["plexus-client/ws-native"]
+
+# plexus-auth-core's features: the identity adapters (OIDC over reqwest,
+# nostr, agent keys) and, for a crate's tests, its test constructors.
+auth-adapters = ["plexus-auth-core/adapters"]
+auth-test-support = ["plexus-auth-core/test-support"]
+
 [dependencies]
-# Always required — the umbrella's reason for being is to pin these together.
-plexus-auth-core = { path = "../plexus-auth-core", version = "0.2" }
-plexus-core      = { path = "../plexus-core",      version = "0.6" }
-plexus-macros    = { path = "../plexus-macros",    version = "0.6" }
+plexus-core = { version = "0.8.0", default-features = false }
+# 0.8.1: every name its expansions emit resolves through this crate when an
+# app depends only on it (PLEXUS-44).
+plexus-macros = "0.8.1"
+plexus-auth-core = "0.3"
+plexus-client = { version = "0.8.0", features = ["schema"] }
+plexus-transport = { version = "0.7", optional = true }
 
-# Optional — see the `transport` feature flag.
-plexus-transport = { path = "../plexus-transport", version = "0.4", optional = true }
-
-# Z2H-2: macro-emission dependencies, re-exported through `__deps` so that
-# plexus-macros 0.6 can emit `::plexus_rpc::__deps::<crate>::...` paths.
-# A consumer depending only on `plexus-rpc` (+ `jsonrpsee`, see below)
-# compiles macro-annotated activations without naming any of these.
-#
-# `jsonrpsee` is re-exported too, BUT consumers still need it as a direct
-# dependency: jsonrpsee's own `#[rpc]` proc-macro (which plexus-macros
-# delegates server-trait generation to) runs its own lookup against the
-# CONSUMER's Cargo.toml and hard-errors if `jsonrpsee` isn't listed there.
-# Inlining that expansion into plexus-macros (true 1-dep) is a noted
-# follow-up to Z2H-2.
+# The crates the macros' expansions name, re-exported through `__deps` so an
+# app lists none of them. `anyhow` and `async-stream` ride along: the usual
+# activation writes them.
 anyhow = "1.0"
 async-stream = "0.3"
 async-trait = "0.1"
 futures = "0.3"
-jsonrpsee = { version = "0.26", features = ["server", "macros"] }
+jsonrpsee = { version = "0.26.1", features = ["server", "macros"] }
 schemars = { version = "1.1", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync"] }
 uuid = { version = "1.6", features = ["v4", "serde"] }
-
-# Serde for the Capabilities manifest (it serializes into _info) and for
-# the `__deps::serde` re-export (the generated method enum derives
-# Serialize/Deserialize through it).
-serde = { version = "1.0", features = ["derive"] }
-
-[dev-dependencies]
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-# Z2H-2 anti-rot gate (tests/z2h2_dep_reexport.rs) scaffolds consumer crates
-# into a tempdir farm.
-tempfile = "3"
-
-# Examples reference `plexus_core` and `plexus_macros` directly at the
-# crate root (today's canonical direct-consumer shape). Library consumers
-# depending only on `plexus-rpc` get the same surface via
-# `plexus_rpc::core` and `plexus_rpc::macros`.
-plexus-core = { path = "../plexus-core", version = "0.6" }
-plexus-macros = { path = "../plexus-macros", version = "0.6" }
-
-# Examples register with the registry by binding 4444 by default; the
-# server lives behind the `transport` feature so the example only
-# compiles when transport is on (the default).
-[[example]]
-name = "echo"
-required-features = ["transport"]
