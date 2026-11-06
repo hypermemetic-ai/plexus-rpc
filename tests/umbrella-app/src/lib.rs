@@ -121,7 +121,8 @@ pub enum EchoHandle {
 pub struct EchoActivation;
 
 /// Say things back.
-#[activation(namespace = "echo", version = "1.0.0", request = EchoRequest)]
+// plexus-macros 0.9 (RETURNS-47) emits a trait only when it is named.
+#[activation(namespace = "echo", version = "1.0.0", request = EchoRequest, trait = "Echo")]
 impl EchoActivation {
     /// Always answers pong.
     #[method]

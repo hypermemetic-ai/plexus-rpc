@@ -11,7 +11,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use plexus_rpc::__deps::futures::StreamExt;
+use plexus_rpc::__deps::futures::{StreamExt, TryStreamExt};
 use plexus_rpc::__deps::serde_json::{self, json, Value};
 use plexus_rpc::client::ws::WsTransport;
 use plexus_rpc::prelude::*;
@@ -29,6 +29,20 @@ async fn all_forms(c: &dyn Echo) {
     assert_eq!(c.lookup("missing".into()).await, Err(Missing::NotFound { id: "missing".into() }));
 }
 
+/// Every form, through the generated client. Since plexus-macros 0.9
+/// (RETURNS-47) the client implements no trait: its methods are its own and
+/// answer `Result<T, ClientError>` (a stream, items of that).
+macro_rules! all_forms_by_client {
+    ($c:expr) => {{
+        let c = $c;
+        assert_eq!(c.ping().await.unwrap(), Pong { message: "pong".into() });
+        let ticks: Vec<Tick> = c.count(3).try_collect().await.unwrap();
+        assert_eq!(ticks, vec![Tick { n: 1 }, Tick { n: 2 }, Tick { n: 3 }]);
+        assert_eq!(c.lookup("a1".into()).await.unwrap(), Ok(Thing { id: "a1".into() }));
+        assert_eq!(c.lookup("missing".into()).await.unwrap(), Err(Missing::NotFound { id: "missing".into() }));
+    }};
+}
+
 #[rt::test(crate = "rt")]
 async fn the_activation_answers_through_its_trait() {
     all_forms(&EchoActivation).await;
@@ -37,7 +51,7 @@ async fn the_activation_answers_through_its_trait() {
 #[rt::test(crate = "rt")]
 async fn its_client_calls_the_service_in_process() {
     let transport = ServiceTransport::anonymous(Arc::new(service()));
-    all_forms(&EchoClient::new(transport)).await;
+    all_forms_by_client!(EchoClient::new(transport));
 }
 
 #[rt::test(crate = "rt", flavor = "multi_thread")]
@@ -65,7 +79,7 @@ async fn its_client_calls_the_service_over_a_websocket() {
         }
     }
     let transport = transport.expect("the service is listening");
-    all_forms(&EchoClient::new(transport)).await;
+    all_forms_by_client!(EchoClient::new(transport));
     serving.abort();
 }
 
