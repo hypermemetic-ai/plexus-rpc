@@ -2,7 +2,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! plexus-rpc = "0.8"
+//! plexus-rpc = "0.9"
 //! ```
 //!
 //! That line brings the set at versions that work together, its version in
@@ -57,7 +57,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// The plexus-macros version this umbrella requires (its `Cargo.toml`
 /// pin). plexus-macros is a proc-macro crate and cannot export a `VERSION`
 /// of its own.
-pub const PLEXUS_MACROS_VERSION: &str = "0.8.1";
+pub const PLEXUS_MACROS_VERSION: &str = "0.9.0";
 
 // ---------------------------------------------------------------------------
 // The crates.

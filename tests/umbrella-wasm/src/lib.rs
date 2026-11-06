@@ -72,6 +72,8 @@ pub fn service() -> DynamicService {
 }
 
 /// The generated client, on every target: what a browser crate calls.
+/// Since plexus-macros 0.9 (RETURNS-47) the client implements no trait: its
+/// methods are its own and answer `Result<T, ClientError>`.
 pub async fn ping_through<T: Transport + Clone + Send + Sync + 'static>(transport: T) -> Pong {
-    Echo::ping(&EchoClient::new(transport)).await
+    EchoClient::new(transport).ping().await.unwrap_or_else(Pong::from_client_error)
 }

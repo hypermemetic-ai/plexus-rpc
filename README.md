@@ -4,7 +4,7 @@
 
 ```toml
 [dependencies]
-plexus-rpc = "0.8"
+plexus-rpc = "0.9"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }   # for your `main`
 ```
 
@@ -109,7 +109,7 @@ let client = EchoClient::new(plexus_rpc::client::ws::WsTransport::connect("ws://
 | `auth-test-support` | | plexus-auth-core's `test-support`, for a crate's dev-dependencies |
 
 A crate that only defines activations, or only calls them, can drop the
-defaults: `plexus-rpc = { version = "0.8", default-features = false }` — plus
+defaults: `plexus-rpc = { version = "0.9", default-features = false }` — plus
 `features = ["child-ws"]` (or `"server"`) when it still needs plexus-core.
 
 ## In the browser (wasm32)
@@ -128,7 +128,7 @@ default = ["server"]
 server = ["plexus-rpc/server"]
 
 [dependencies]
-plexus-rpc = { version = "0.8.1", default-features = false }
+plexus-rpc = { version = "0.9", default-features = false }
 ```
 
 `tests/umbrella-wasm` is that crate, and `tests/wasm32_check.rs` builds both
