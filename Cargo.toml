@@ -2,12 +2,14 @@
 # PLEXUS-44: `tests/umbrella-app` is an app whose Cargo.toml lists only
 # plexus-rpc and tokio; it builds, serves and calls an activation, so a macro
 # path that escapes the umbrella fails its build. Not published.
-members = [".", "tests/umbrella-app"]
+# PLEXUS-45: `tests/umbrella-wasm` is an activation crate on plexus-rpc alone
+# whose client builds for wasm32 with the umbrella's `server` off.
+members = [".", "tests/umbrella-app", "tests/umbrella-wasm"]
 
 [package]
 name = "plexus-rpc"
 # PLEXUS-44: in lockstep with plexus-core — the one number an app bumps.
-version = "0.8.0"
+version = "0.8.1"
 edition = "2021"
 license = "MIT"
 description = "One dependency for a Plexus RPC service: plexus-core, plexus-macros, plexus-auth-core, plexus-client and (feature `transport`) plexus-transport at compatible versions, plus every crate the macros' expansions name."
@@ -19,21 +21,28 @@ categories = ["network-programming", "asynchronous"]
 include = ["src/**/*", "Cargo.toml", "README.md", "LICENSE*"]
 
 [features]
-# A service serves: the transport is on by default. Drop it (default-features
-# = false) for a crate that only defines activations, or only calls them.
-default = ["transport", "child-ws"]
+# A service serves: the server and its transport are on by default.
+default = ["server", "transport", "child-ws"]
+
+# PLEXUS-45: plexus-core and what a service's macro expansions name besides
+# (jsonrpsee). Off (`default-features = false`) the umbrella is plexus-macros,
+# plexus-client, plexus-auth-core and `__deps` — what a crate that only
+# calls activations needs, and it builds for wasm32-unknown-unknown. An app's
+# own `server` feature gates the macro's server half, so a crate that is a
+# service natively and a client in the browser turns this one on in its own.
+server = ["dep:plexus-core", "dep:jsonrpsee"]
 
 # plexus-transport: the WebSocket / HTTP / stdio server runtime.
-transport = ["dep:plexus-transport"]
+transport = ["server", "dep:plexus-transport"]
 mcp = ["transport", "plexus-transport/mcp"]
 mcp-gateway = ["transport", "plexus-transport/mcp-gateway"]
 http-gateway = ["transport", "plexus-transport/http-gateway"]
 sqlite-sessions = ["transport", "plexus-transport/sqlite-sessions"]
 
-# plexus-core's features.
-child-ws = ["plexus-core/child-ws"]
-child-wss = ["plexus-core/child-wss"]
-clap = ["plexus-core/clap"]
+# plexus-core's features (each turns on `server`, which carries plexus-core).
+child-ws = ["server", "plexus-core/child-ws"]
+child-wss = ["server", "plexus-core/child-wss"]
+clap = ["server", "plexus-core/clap"]
 
 # plexus-client over a native WebSocket (`client::ws::WsTransport`).
 client-ws = ["plexus-client/ws-native"]
@@ -44,11 +53,12 @@ auth-adapters = ["plexus-auth-core/adapters"]
 auth-test-support = ["plexus-auth-core/test-support"]
 
 [dependencies]
-plexus-core = { version = "0.8.0", default-features = false }
+plexus-core = { version = "0.8.0", default-features = false, optional = true }
 # 0.8.1: every name its expansions emit resolves through this crate when an
 # app depends only on it (PLEXUS-44).
 plexus-macros = "0.8.1"
-plexus-auth-core = "0.3"
+# 0.3.1: builds for wasm32 (PLEXUS-45); natively the same as 0.3.0.
+plexus-auth-core = "0.3.1"
 plexus-client = { version = "0.8.0", features = ["schema"] }
 plexus-transport = { version = "0.7", optional = true }
 
@@ -59,9 +69,22 @@ anyhow = "1.0"
 async-stream = "0.3"
 async-trait = "0.1"
 futures = "0.3"
-jsonrpsee = { version = "0.26.1", features = ["server", "macros"] }
 schemars = { version = "1.1", features = ["derive"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync"] }
 uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# PLEXUS-45: natively, tokio and jsonrpsee as in 0.8.0; jsonrpsee is now
+# behind the `server` feature, which is on by default.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+jsonrpsee = { version = "0.26.1", features = ["server", "macros"], optional = true }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync"] }
+
+# wasm32: the parts of tokio and jsonrpsee that build there, and randomness
+# (uuid's v4) from the JS runtime. getrandom 0.3's `wasm_js` also needs
+# `--cfg getrandom_backend="wasm_js"` in the target's rustflags.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+jsonrpsee = { version = "0.26.1", default-features = false, features = ["server-core", "macros"], optional = true }
+tokio = { version = "1", default-features = false, features = ["macros", "rt", "sync"] }
+getrandom = { version = "0.3", features = ["wasm_js"] }
+uuid = { version = "1.6", features = ["js"] }

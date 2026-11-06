@@ -8,7 +8,8 @@
 //! That line brings the set at versions that work together, its version in
 //! lockstep with plexus-core's:
 //!
-//! - [`core`] — `DynamicHub`, dispatch, schemas, the `Activation` trait (`plexus-core`);
+//! - [`core`] (feature `server`, on by default) — `DynamicHub`, dispatch, schemas, the
+//!   `Activation` trait (`plexus-core`);
 //! - [`macros`] — `#[activation]`, `#[method]`, `#[child]` and the derives (`plexus-macros`),
 //!   the attribute macros also at this crate's root;
 //! - [`auth_core`] — the sealed identity, credential, grant and audit types (`plexus-auth-core`);
@@ -67,7 +68,8 @@ pub const PLEXUS_MACROS_VERSION: &str = "0.8.1";
 pub use plexus_auth_core as auth_core;
 
 /// Dispatch, schemas, the `Activation` trait and `DynamicHub` — the
-/// `plexus-core` crate.
+/// `plexus-core` crate (feature `server`, on by default).
+#[cfg(feature = "server")]
 pub use plexus_core as core;
 
 /// The procedural macros — the `plexus-macros` crate. The attribute
@@ -96,15 +98,18 @@ pub use plexus_macros::{activation, child, method, removed_in};
 pub mod prelude {
     pub use plexus_macros::{activation, child, method, removed_in, Credentials, HandleEnum, PlexusRequest};
 
+    #[cfg(feature = "server")]
     pub use plexus_core::plexus::{
         Activation, AuthContext, BidirChannel, ChildRouter, DynamicHub, HubTransport, Input, PlexusError,
         PlexusStream, PluginSchema, Progress,
     };
     /// The service an app registers its activations with and serves:
     /// plexus-core's `DynamicHub`, by the name the ecosystem uses for it.
+    #[cfg(feature = "server")]
     pub use plexus_core::plexus::DynamicHub as DynamicService;
     /// A service called in process through its own routing: plexus-core's
     /// `HubTransport`, by the name the ecosystem uses for it.
+    #[cfg(feature = "server")]
     pub use plexus_core::plexus::HubTransport as ServiceTransport;
 
     pub use plexus_client::{BoxFuture, BoxStream, ClientError, FromClientError, RemoteError, Transport};
@@ -140,6 +145,7 @@ pub mod __deps {
     pub use ::async_stream;
     pub use ::async_trait;
     pub use ::futures;
+    #[cfg(feature = "server")]
     pub use ::jsonrpsee;
     pub use ::schemars;
     pub use ::serde;
@@ -163,6 +169,7 @@ pub mod __deps {
 /// `Capabilities` is **emit-only** — it holds `&'static` slices so it can
 /// be a `const`, which precludes `Deserialize`. Consumers should mirror
 /// the wire shape in their own owning struct.
+#[cfg(feature = "server")]
 #[derive(Debug, Clone, Copy, serde::Serialize)]
 pub struct Capabilities {
     /// Version of the `plexus-rpc` umbrella itself.
@@ -187,7 +194,9 @@ pub struct Capabilities {
 ///
 /// Backends embed this in their `_info` payload so tooling (synapse,
 /// synapse-cc, generated SDKs) can branch on capability rather than
-/// inferring features from subcrate version strings.
+/// inferring features from subcrate version strings. A service's (feature
+/// `server`).
+#[cfg(feature = "server")]
 pub const CAPABILITIES: Capabilities = Capabilities {
     plexus_rpc: VERSION,
     plexus_auth_core: plexus_auth_core::VERSION,
@@ -228,6 +237,7 @@ pub const CAPABILITIES: Capabilities = Capabilities {
 ///   the `{method}.schema` strip-suffix shortcut, and the `.method_schema`
 ///   content-type no longer exist — per-method detail is read from `methods[]`.
 ///   Tooling can rely on `".schema" isSuffixOf content_type` always matching.
+#[cfg(feature = "server")]
 const FEATURES: &[&str] = &[
     "auth_capabilities",
     "forward_policy",
@@ -239,7 +249,7 @@ const FEATURES: &[&str] = &[
     "unified_schema",
 ];
 
-#[cfg(test)]
+#[cfg(all(test, feature = "server"))]
 mod tests {
     use super::*;
 

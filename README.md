@@ -14,7 +14,7 @@ this crate, and an app bumps one number.
 
 | module | crate | what's in it |
 |---|---|---|
-| `plexus_rpc::core` | plexus-core | `DynamicHub`, `Activation`, dispatch, schemas, the in-process transport |
+| `plexus_rpc::core` | plexus-core (feature `server`, on by default) | `DynamicHub`, `Activation`, dispatch, schemas, the in-process transport |
 | `plexus_rpc::macros` | plexus-macros | `#[activation]`, `#[method]`, `#[child]`, `#[derive(PlexusRequest, Credentials, HandleEnum)]` — the attribute macros also at the root (`plexus_rpc::activation`) |
 | `plexus_rpc::auth_core` | plexus-auth-core | `AuthContext`, `Principal`, `Credential<T>`, grants, forwarding, audit |
 | `plexus_rpc::client` | plexus-client | the runtime of the client `#[activation]` writes for you |
@@ -98,8 +98,9 @@ let client = EchoClient::new(plexus_rpc::client::ws::WsTransport::connect("ws://
 
 | feature | default | what it turns on |
 |---|---|---|
-| `transport` | yes | `plexus_rpc::transport` (plexus-transport) |
-| `child-ws` | yes | plexus-core's remote children over a WebSocket |
+| `server` | yes | `plexus_rpc::core` (plexus-core), the prelude's `DynamicService` and friends, `__deps::jsonrpsee`, `CAPABILITIES` |
+| `transport` | yes | `plexus_rpc::transport` (plexus-transport); turns on `server` |
+| `child-ws` | yes | plexus-core's remote children over a WebSocket; turns on `server` |
 | `child-wss` | | … over TLS |
 | `clap` | | plexus-core's clap integration |
 | `client-ws` | | `plexus_rpc::client::ws::WsTransport`, a native WebSocket client |
@@ -108,7 +109,37 @@ let client = EchoClient::new(plexus_rpc::client::ws::WsTransport::connect("ws://
 | `auth-test-support` | | plexus-auth-core's `test-support`, for a crate's dev-dependencies |
 
 A crate that only defines activations, or only calls them, can drop the
-defaults: `plexus-rpc = { version = "0.8", default-features = false }`.
+defaults: `plexus-rpc = { version = "0.8", default-features = false }` — plus
+`features = ["child-ws"]` (or `"server"`) when it still needs plexus-core.
+
+## In the browser (wasm32)
+
+With `default-features = false` (0.8.1 and later) the umbrella is
+plexus-macros, plexus-client, plexus-auth-core and `__deps`, and it builds
+for `wasm32-unknown-unknown`. An API crate that is a service natively and a
+client in the browser gives itself a `server` feature that turns on the
+umbrella's; `#[activation]` gates its server half on the crate's own
+`server` feature, so with it off the trait and the generated client are
+what is left:
+
+```toml
+[features]
+default = ["server"]
+server = ["plexus-rpc/server"]
+
+[dependencies]
+plexus-rpc = { version = "0.8.1", default-features = false }
+```
+
+`tests/umbrella-wasm` is that crate, and `tests/wasm32_check.rs` builds both
+for wasm32. getrandom (uuid's v4) needs
+`--cfg getrandom_backend="wasm_js"` in the target's rustflags, e.g. in
+`.cargo/config.toml`:
+
+```toml
+[target.wasm32-unknown-unknown]
+rustflags = ["--cfg", "getrandom_backend=\"wasm_js\""]
+```
 
 ## The guard
 

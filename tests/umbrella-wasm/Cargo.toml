@@ -1,0 +1,19 @@
+[package]
+name = "umbrella-wasm"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "PLEXUS-45: an activation crate on plexus-rpc alone that is a service natively and a client in wasm32"
+
+# A crate shaped like a browser-reachable API crate: its own `server`
+# feature (on by default) turns on the umbrella's, and `#[activation]` gates
+# its server half on it without being told. With `--no-default-features`
+# the umbrella is macros, client, auth-core and `__deps` — and this crate,
+# trait and generated client, builds for wasm32-unknown-unknown
+# (tests/wasm32_check.rs).
+[features]
+default = ["server"]
+server = ["plexus-rpc/server"]
+
+[dependencies]
+plexus-rpc = { path = "../..", default-features = false }
