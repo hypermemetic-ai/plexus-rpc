@@ -4,12 +4,12 @@
 
 ```toml
 [dependencies]
-plexus-rpc = "0.10"
+plexus-rpc = "0.11"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }   # for your `main`
 ```
 
 `plexus-rpc` brings the Plexus crates at versions that work together, its
-version in lockstep with plexus-core's: when plexus-core moves to 0.10, so does
+version in lockstep with plexus-core's: when plexus-core moves to 0.11, so does
 this crate, and an app bumps one number.
 
 | module | crate | what's in it |
@@ -109,7 +109,7 @@ let client = EchoClient::new(plexus_rpc::client::ws::WsTransport::connect("ws://
 | `auth-test-support` | | plexus-auth-core's `test-support`, for a crate's dev-dependencies |
 
 A crate that only defines activations, or only calls them, can drop the
-defaults: `plexus-rpc = { version = "0.10", default-features = false }` — plus
+defaults: `plexus-rpc = { version = "0.11", default-features = false }` — plus
 `features = ["child-ws"]` (or `"server"`) when it still needs plexus-core.
 
 ## In the browser (wasm32)
@@ -128,7 +128,7 @@ default = ["server"]
 server = ["plexus-rpc/server"]
 
 [dependencies]
-plexus-rpc = { version = "0.10", default-features = false }
+plexus-rpc = { version = "0.11", default-features = false }
 ```
 
 `tests/umbrella-wasm` is that crate, and `tests/wasm32_check.rs` builds both
