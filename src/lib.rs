@@ -2,7 +2,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! plexus-rpc = "0.9"
+//! plexus-rpc = "0.10"
 //! ```
 //!
 //! That line brings the set at versions that work together, its version in
@@ -57,7 +57,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// The plexus-macros version this umbrella requires (its `Cargo.toml`
 /// pin). plexus-macros is a proc-macro crate and cannot export a `VERSION`
 /// of its own.
-pub const PLEXUS_MACROS_VERSION: &str = "0.9.0";
+pub const PLEXUS_MACROS_VERSION: &str = "0.10.0";
 
 // ---------------------------------------------------------------------------
 // The crates.
@@ -88,7 +88,7 @@ pub use plexus_transport as transport;
 
 // The attribute macros, at the root.
 #[allow(deprecated)]
-pub use plexus_macros::{activation, child, method, removed_in};
+pub use plexus_macros::{activation, child, method, peer, removed_in};
 
 /// What an activation and the `main` that serves it usually name.
 ///
@@ -96,11 +96,11 @@ pub use plexus_macros::{activation, child, method, removed_in};
 /// use plexus_rpc::prelude::*;
 /// ```
 pub mod prelude {
-    pub use plexus_macros::{activation, child, method, removed_in, Credentials, HandleEnum, PlexusRequest};
+    pub use plexus_macros::{activation, child, method, peer, removed_in, Credentials, HandleEnum, PlexusRequest};
 
     #[cfg(feature = "server")]
     pub use plexus_core::plexus::{
-        Activation, AuthContext, BidirChannel, ChildRouter, DynamicHub, HubTransport, Input, PlexusError,
+        Activation, AuthContext, ChildRouter, DynamicHub, HubTransport, Input, Interface, Peer, PeerError, PlexusError,
         PlexusStream, PluginSchema, Progress,
     };
     /// The service an app registers its activations with and serves:
