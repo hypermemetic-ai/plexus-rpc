@@ -40,14 +40,14 @@
 //! }
 //! ```
 //!
-//! A type that crosses the wire is `#[wire]` (PLEXUS-59): `Debug`, `Clone`,
-//! serde's `Serialize` and `Deserialize` and schemars' `JsonSchema`, and for
-//! an enum the tag every Plexus event carries (`tag = "type"`, snake_case):
+//! A type that crosses the wire derives `PlexusWire` (PLEXUS-59): serde's
+//! `Serialize` and `Deserialize` and schemars' `JsonSchema`, and for an enum
+//! the tag every Plexus event carries (`tag = "type"`, snake_case):
 //!
 //! ```ignore
-//! #[wire]
-//! pub enum CountEvent {
-//!     Tick { n: u32 },
+//! #[derive(Debug, Clone, PlexusWire)]
+//! pub struct Tick {
+//!     n: u32,
 //! }
 //! ```
 //!
@@ -99,7 +99,7 @@ pub use plexus_transport as transport;
 
 // The attribute macros, at the root.
 #[allow(deprecated)]
-pub use plexus_macros::{activation, child, method, peer, removed_in, wire};
+pub use plexus_macros::{activation, child, method, peer, removed_in};
 
 /// What an activation and the `main` that serves it usually name.
 ///
@@ -107,7 +107,7 @@ pub use plexus_macros::{activation, child, method, peer, removed_in, wire};
 /// use plexus_rpc::prelude::*;
 /// ```
 pub mod prelude {
-    pub use plexus_macros::{activation, child, method, peer, removed_in, wire, Credentials, HandleEnum, PlexusRequest};
+    pub use plexus_macros::{activation, child, method, peer, removed_in, Credentials, HandleEnum, PlexusRequest, PlexusWire};
 
     #[cfg(feature = "server")]
     pub use plexus_core::plexus::{
