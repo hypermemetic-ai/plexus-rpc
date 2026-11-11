@@ -132,7 +132,11 @@ impl EchoActivation {
 
     /// Ticks from 1 up to `to`.
     #[method]
-    pub async fn count(&self, /** the last tick */ to: u32) -> impl Stream<Item = Tick> + Send + 'static {
+    pub async fn count(
+        &self,
+        /// the last tick
+        to: u32,
+    ) -> impl Stream<Item = Tick> + Send + 'static {
         plexus_rpc::__deps::futures::stream::iter((1..=to).map(|n| Tick { n }))
     }
 

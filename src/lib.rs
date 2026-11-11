@@ -34,13 +34,28 @@
 //! impl EchoActivation {
 //!     /// Say a thing back.
 //!     #[method]
-//!     async fn say(&self, /** what to say */ text: String) -> String {
+//!     async fn say(
+//!         &self,
+//!         /// what to say
+//!         text: String,
+//!     ) -> String {
 //!         text
 //!     }
 //! }
 //! ```
 //!
-//! A type of the app's own that derives serde or schemars traits names them
+//! A type that crosses the wire derives `PlexusWire` (PLEXUS-59): serde's
+//! `Serialize` and `Deserialize` and schemars' `JsonSchema`, and for an enum
+//! the tag every Plexus event carries (`tag = "type"`, snake_case):
+//!
+//! ```ignore
+//! #[derive(Debug, Clone, PlexusWire)]
+//! pub struct Tick {
+//!     n: u32,
+//! }
+//! ```
+//!
+//! A type that derives serde or schemars traits itself names them
 //! through `__deps` when the app does not list serde itself:
 //! `#[serde(crate = "plexus_rpc::__deps::serde")]`,
 //! `#[schemars(crate = "plexus_rpc::__deps::schemars")]`.
@@ -57,7 +72,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// The plexus-macros version this umbrella requires (its `Cargo.toml`
 /// pin). plexus-macros is a proc-macro crate and cannot export a `VERSION`
 /// of its own.
-pub const PLEXUS_MACROS_VERSION: &str = "0.11.0";
+pub const PLEXUS_MACROS_VERSION: &str = "0.11.2";
 
 // ---------------------------------------------------------------------------
 // The crates.
@@ -88,7 +103,9 @@ pub use plexus_transport as transport;
 
 // The attribute macros, at the root.
 #[allow(deprecated)]
-pub use plexus_macros::{activation, child, method, peer, removed_in};
+pub use plexus_macros::{activation, child, method, peer, removed_in, PlexusWire};
+/// `PlexusWire` under the name it has behind the crate's own: `#[derive(plexus::Wire)]`.
+pub use plexus_macros::PlexusWire as Wire;
 
 /// What an activation and the `main` that serves it usually name.
 ///
@@ -96,7 +113,7 @@ pub use plexus_macros::{activation, child, method, peer, removed_in};
 /// use plexus_rpc::prelude::*;
 /// ```
 pub mod prelude {
-    pub use plexus_macros::{activation, child, method, peer, removed_in, Credentials, HandleEnum, PlexusRequest};
+    pub use plexus_macros::{activation, child, method, peer, removed_in, Credentials, HandleEnum, PlexusRequest, PlexusWire};
 
     #[cfg(feature = "server")]
     pub use plexus_core::plexus::{
