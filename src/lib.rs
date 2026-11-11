@@ -104,6 +104,8 @@ pub use plexus_transport as transport;
 // The attribute macros, at the root.
 #[allow(deprecated)]
 pub use plexus_macros::{activation, child, method, peer, removed_in, PlexusWire};
+/// `PlexusWire` under the name it has behind the crate's own: `#[derive(plexus::Wire)]`.
+pub use plexus_macros::PlexusWire as Wire;
 
 /// What an activation and the `main` that serves it usually name.
 ///
