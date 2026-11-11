@@ -34,7 +34,11 @@
 //! impl EchoActivation {
 //!     /// Say a thing back.
 //!     #[method]
-//!     async fn say(&self, /** what to say */ text: String) -> String {
+//!     async fn say(
+//!         &self,
+//!         /// what to say
+//!         text: String,
+//!     ) -> String {
 //!         text
 //!     }
 //! }
