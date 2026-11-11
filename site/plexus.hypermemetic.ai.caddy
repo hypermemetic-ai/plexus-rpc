@@ -1,0 +1,46 @@
+# plexus.hypermemetic.ai — Plexus RPC's page (PLEXUS-56, PLEXUS-61), served
+# by the edge.
+#
+# Deployed by hypermemetic-infra's edge role, which copies plexus-rpc's
+# site/ (index.html, style.css, main.js, favicon.svg, fonts/) to
+# /srv/plexus.hypermemetic.ai and this file into the edge's sites/, from a
+# pinned commit. Not deployed by hand.
+#
+# The page makes no request beyond its own files and has no inline script
+# or style, so the policy needs no hash and no 'unsafe-inline'. The web is
+# drawn in WebGL by main.js; nothing connects anywhere.
+
+plexus.hypermemetic.ai {
+	log {
+		output stderr
+		format json
+	}
+
+	encode zstd gzip
+	root * /srv/plexus.hypermemetic.ai
+	file_server
+
+	header {
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		-Server
+	}
+
+	# the page: always revalidated, so a deploy shows at once
+	@page path / /index.html
+	header @page Cache-Control "no-cache"
+
+	# its assets: names are not fingerprinted, so they revalidate too — the
+	# script and the page must change together
+	@assets path /style.css /main.js /favicon.svg
+	header @assets Cache-Control "no-cache"
+
+	# the faces (Onest and Fragment Mono, both OFL, self-hosted): a day, then
+	# revalidate in the background for a week
+	@fonts path /fonts/*
+	header @fonts Cache-Control "public, max-age=86400, stale-while-revalidate=604800"
+}
