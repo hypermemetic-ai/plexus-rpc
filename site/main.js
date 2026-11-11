@@ -31,7 +31,8 @@ function size(){d=Math.min(devicePixelRatio||1,2)*q;var r=cv.getBoundingClientRe
   var ss=Math.max(1,Math.min(2,3/d,MAXT/Math.max(w,h)));[A,Hf,B,B2].forEach(drop);
   A=target(Math.round(w*ss),Math.round(h*ss));Hf=target(Math.ceil(w/2),Math.ceil(h/2));B=target(Math.ceil(w/4),Math.ceil(h/4));B2=target(B.w,B.h);webT=NaN;draw();}
 function disc(n,cx,cy,r,w,h){for(var i=0;i<40;i++){var a=i*Math.PI/20,b=(i+1)*Math.PI/20;verts[n++]=cx/w;verts[n++]=cy/h;verts[n++]=(cx+r*Math.cos(a))/w;verts[n++]=(cy+r*Math.sin(a))/h;verts[n++]=(cx+r*Math.cos(b))/w;verts[n++]=(cy+r*Math.sin(b))/h;}return n;}
-function web(){var w=cv.width/2,h=cv.height/2,s=uR*2.02,tiles=Math.ceil((w+uR)/s),n=0,x,i,k;
+// data-one on the page's root draws one web and none beside it: the link preview's picture (scripts/site-preview.mjs).
+function web(){var w=cv.width/2,h=cv.height/2,s=uR*2.02,tiles=document.documentElement.hasAttribute('data-one')?0:Math.ceil((w+uR)/s),n=0,x,i,k;
   var rr=[.93+.07*Math.sin(t*.31),.80+.10*Math.sin(t*.37+1.1),.66+.11*Math.sin(t*.29+2.3),.50+.10*Math.sin(t*.41+3.1),.35+.08*Math.sin(t*.33+4.2),.21+.05*Math.sin(t*.45+5.0)],
       ph=[t*.020,-t*.034,t*.047,-t*.061,t*.078,-t*.095];
   // A star {24/k} is cut by its own edges into rings of cells: its points, then kites, then its inner polygon. A

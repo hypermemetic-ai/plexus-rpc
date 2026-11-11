@@ -2,7 +2,7 @@
 # by the edge.
 #
 # Deployed by hypermemetic-infra's edge role, which copies plexus-rpc's
-# site/ (index.html, style.css, main.js, favicon.svg, fonts/) to
+# site/ (index.html, style.css, main.js, favicon.svg, fonts/, media/) to
 # /srv/plexus.hypermemetic.ai and this file into the edge's sites/, from a
 # pinned commit. Not deployed by hand.
 #
@@ -14,6 +14,16 @@ plexus.hypermemetic.ai {
 	log {
 		output stderr
 		format json
+	}
+
+	# PLEXUS-62: an RSA certificate, as menger.sh's (DESIGN-53). The page has a
+	# link preview now, and x.com's card crawler does not build the ECDSA
+	# chain (EE ← YE1 ← Root YE ← X2 ← X1): it showed no card for menger.sh
+	# while every other fetcher did. RSA issues on a chain that is RSA to the
+	# oldest root. The edge moves the stored certificate when the type differs
+	# (hypermemetic-infra: edge_cert_keys).
+	tls {
+		key_type rsa2048
 	}
 
 	encode zstd gzip
@@ -38,6 +48,11 @@ plexus.hypermemetic.ai {
 	# script and the page must change together
 	@assets path /style.css /main.js /favicon.svg
 	header @assets Cache-Control "no-cache"
+
+	# the link preview's picture (PLEXUS-62: media/og.png, made by
+	# scripts/site-preview.mjs): an hour, since a crawler keeps its own copy
+	@media path /media/*
+	header @media Cache-Control "public, max-age=3600"
 
 	# the faces (Onest and Fragment Mono, both OFL, self-hosted): a day, then
 	# revalidate in the background for a week
