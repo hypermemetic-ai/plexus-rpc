@@ -53,7 +53,9 @@ auth-adapters = ["plexus-auth-core/adapters"]
 auth-test-support = ["plexus-auth-core/test-support"]
 
 [dependencies]
-plexus-core = { version = "0.11.0", default-features = false, optional = true }
+# 0.11.2: what plexus-macros 0.11.1 and later expand to (`MethodSchema::with_everywhere`, KEEL-31) is not in
+# an earlier plexus-core, so a lock that held 0.11.0 would not build.
+plexus-core = { version = "0.11.2", default-features = false, optional = true }
 # 0.11.0, in lockstep with plexus-core (NEST-10, NEST-24); since 0.8.1 every name its
 # expansions emit resolves through this crate when an
 # app depends only on it (PLEXUS-44).
