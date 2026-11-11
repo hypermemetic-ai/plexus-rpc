@@ -1,0 +1,71 @@
+# Plexus RPC
+
+> A Rust RPC framework. A service is a tree of activations; each method returns a stream. The command line (synapse) and the TypeScript client (synapse-cc) are generated from the service's own schema.
+
+- [plexus-rpc on crates.io](https://crates.io/crates/plexus-rpc): the one dependency a service takes
+- [API reference](https://docs.rs/plexus-rpc)
+- [Source](https://github.com/hypermemetic-ai/plexus-rpc)
+
+## A service
+
+Cargo.toml:
+
+```toml
+[package]
+name = "myservice"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+plexus-rpc = "0.11"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+futures = "0.3"
+anyhow = "1"
+```
+
+src/main.rs:
+
+```rust
+use std::sync::Arc;
+use plexus_rpc::prelude::*;
+
+#[derive(Debug, PlexusWire)]
+pub enum CountEvent {
+    Tick { n: u32 },
+}
+
+#[derive(Clone, Default)]
+pub struct EchoActivation;
+
+/// Say things back.
+#[activation]
+impl EchoActivation {
+    /// Ticks from 1 up to `to`.
+    #[method]
+    pub async fn count(
+        &self,
+        /// the last tick
+        to: u32,
+    ) -> impl Stream<Item = CountEvent> + Send + 'static {
+        futures::stream::iter((1..=to).map(|n| CountEvent::Tick { n }))
+    }
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let service = Arc::new(DynamicService::new("myservice").register(EchoActivation));
+    TransportServer::builder(service, |s| DynamicService::arc_into_rpc_module(s).map_err(Into::into))
+        .with_websocket(4444)
+        .build()
+        .await?
+        .serve()
+        .await
+}
+```
+
+## Calling it
+
+```sh
+cargo run
+synapse myservice echo count --to 3
+```

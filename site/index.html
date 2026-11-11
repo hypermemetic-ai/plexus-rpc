@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Plexus RPC</title>
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/onest-600.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/fragment-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="c" aria-hidden="true"></canvas>
+<div class="track" id="track" tabindex="0">
+<a class="cap mark" data-glass=".72,.6,13" href="#" translate="no"><span>Plexus RPC</span></a>
+<nav class="cap nav" data-glass=".72,.6,13" aria-label="Site" translate="no"><a href="https://crates.io/crates/plexus-rpc">crates.io</a><a href="https://github.com/hypermemetic-ai/plexus-rpc">source</a><a href="https://docs.rs/plexus-rpc">reference</a><a href="llms.txt">llms.txt</a><button id="play" type="button" aria-pressed="false">Pause</button></nav>
+<div class="cap rate" data-glass=".72,.6,13"><span id="rate"></span></div>
+<code class="cap add" data-glass=".72,.6,13" translate="no"><span>cargo add plexus-rpc</span></code>
+<div class="view"><main class="pane" id="pane" data-glass=".82,1,34" translate="no"><div class="scroll" id="scroll"><div id="content"><section class="part" id="main"><figure class="file"><figcaption>src/main.rs</figcaption><pre><span class="at">#[derive(Debug, PlexusWire)]</span>
+<span class="k">pub</span> <span class="k">enum</span> <span class="t">CountEvent</span> {
+    <span class="t">Tick</span> { n: <span class="t">u32</span> },
+}
+
+<span class="at">#[derive(Clone, Default)]</span>
+<span class="k">pub</span> <span class="k">struct</span> <span class="t">EchoActivation</span>;
+
+<span class="c">/// Say things back.</span>
+<span class="at">#[activation]</span>
+<span class="k">impl</span> <span class="t">EchoActivation</span> {
+    <span class="c">/// Ticks from 1 up to `to`.</span>
+    <span class="at">#[method]</span>
+    <span class="k">pub</span> <span class="k">async</span> <span class="k">fn</span> count(
+        &amp;<span class="k">self</span>,
+        <span class="c">/// the last tick</span>
+        to: <span class="t">u32</span>,
+    ) -&gt; <span class="k">impl</span> <span class="t">Stream</span>&lt;<span class="t">Item</span> = <span class="t">CountEvent</span>&gt; + <span class="t">Send</span> + <span class="lt">&#x27;static</span> {
+        futures::stream::iter((<span class="n">1</span>..=to).map(|n| <span class="t">CountEvent</span>::<span class="t">Tick</span> { n }))
+    }
+}</pre></figure></section><section class="part" id="synapse"><div class="demo"><button type="button" class="ps" title="Run again"><span class="k">$</span> cargo run</button><span class="ln" data-s>     Running `target/debug/myservice`</span></div><div class="demo"><button type="button" class="ps" title="Run again"><span class="k">$</span> synapse myservice echo count --to 3</button><span class="ln" data-s><span class="p">n</span>: 1</span><span class="ln" data-s><span class="p">type</span>: tick</span><span class="ln" data-s><span class="p">n</span>: 2</span><span class="ln" data-s><span class="p">type</span>: tick</span><span class="ln" data-s><span class="p">n</span>: 3</span><span class="ln" data-s><span class="p">type</span>: tick</span></div><div class="demo" data-fast><button type="button" class="ps" title="Run again"><span class="k">$</span> synapse myservice echo</button><span class="ln" data-s>echo v0.1.0</span><span class="ln" data-s>  Say things back.</span><span class="ln" data-s> </span><span class="ln" data-s><span class="t">USAGE</span></span><span class="ln" data-s>  synapse myservice echo &lt;method&gt; [flags]</span><span class="ln" data-s> </span><span class="ln" data-s><span class="t">METHODS</span></span><span class="ln" data-s>  count     Ticks from 1 up to `to`.</span><span class="ln" data-s>  schema    Get plugin or method schema</span></div><div class="demo"><button type="button" class="ps" title="Run again"><span class="k">$</span> synapse -j myservice echo count --to 2</button><span class="ln" data-s>{<span class="p">&quot;content&quot;</span>:{<span class="p">&quot;n&quot;</span>:<span class="n">1</span>,<span class="p">&quot;type&quot;</span>:<span class="s">&quot;tick&quot;</span>},<span class="p">&quot;content_type&quot;</span>:<span class="s">&quot;echo.count&quot;</span>,<span class="p">&quot;metadata&quot;</span>:{<span class="p">&quot;plexus_hash&quot;</span>:<span class="s">&quot;68e21310c712241b&quot;</span>,<span class="p">&quot;provenance&quot;</span>:[<span class="s">&quot;echo&quot;</span>],<span class="p">&quot;timestamp&quot;</span>:<span class="n">0</span>},<span class="p">&quot;type&quot;</span>:<span class="s">&quot;data&quot;</span>}</span><span class="ln" data-s>{<span class="p">&quot;content&quot;</span>:{<span class="p">&quot;n&quot;</span>:<span class="n">2</span>,<span class="p">&quot;type&quot;</span>:<span class="s">&quot;tick&quot;</span>},<span class="p">&quot;content_type&quot;</span>:<span class="s">&quot;echo.count&quot;</span>,<span class="p">&quot;metadata&quot;</span>:{<span class="p">&quot;plexus_hash&quot;</span>:<span class="s">&quot;68e21310c712241b&quot;</span>,<span class="p">&quot;provenance&quot;</span>:[<span class="s">&quot;echo&quot;</span>],<span class="p">&quot;timestamp&quot;</span>:<span class="n">0</span>},<span class="p">&quot;type&quot;</span>:<span class="s">&quot;data&quot;</span>}</span><span class="ln" data-s>{<span class="p">&quot;metadata&quot;</span>:{<span class="p">&quot;plexus_hash&quot;</span>:<span class="s">&quot;68e21310c712241b&quot;</span>,<span class="p">&quot;provenance&quot;</span>:[<span class="s">&quot;echo&quot;</span>],<span class="p">&quot;timestamp&quot;</span>:<span class="n">0</span>},<span class="p">&quot;type&quot;</span>:<span class="s">&quot;done&quot;</span>}</span></div></section><section class="part" id="synapse-cc"><div class="demo" data-fast><button type="button" class="ps" title="Run again"><span class="k">$</span> synapse-cc build typescript myservice --port 4444 --output client --no-tests</button><span class="ln" data-s><span class="c">==&gt; Discovering tools...</span></span><span class="ln" data-s><span class="at">[+]</span> Found all required tools</span><span class="ln" data-s><span class="c">==&gt; Resolving myservice via registry at ws://127.0.0.1:4444...</span></span><span class="ln" data-s><span class="c">==&gt; Reading schema...</span></span><span class="ln" data-s><span class="at">[+]</span> Schema ready (2 plugins)</span><span class="ln" data-s><span class="c">==&gt; Generating code...</span></span><span class="ln" data-s><span class="at">[+]</span> Code generated (12 files)</span><span class="ln" data-s><span class="c">==&gt; Installing dependencies...</span></span><span class="ln" data-s><span class="at">[+]</span> Dependencies installed</span><span class="ln" data-s><span class="c">==&gt; Building...</span></span><span class="ln" data-s><span class="at">[+]</span> Build passed</span><span class="ln" data-s><span class="at">[+]</span> Client → client/</span></div></section><section class="part" id="client"><figure class="file"><figcaption>client/echo/types.ts</figcaption><pre><span class="k">export</span> <span class="k">interface</span> <span class="t">CountEventTick</span> {
+  <span class="k">type</span>: <span class="s">&#x27;tick&#x27;</span>;
+  n: <span class="t">number</span>;
+}
+
+<span class="k">export</span> <span class="k">type</span> <span class="t">CountEvent</span> = <span class="t">CountEventTick</span>;
+
+<span class="k">export</span> <span class="k">function</span> isCountEventTick(e: <span class="t">CountEvent</span>): e <span class="k">is</span> <span class="t">CountEventTick</span> { <span class="k">return</span> e.<span class="k">type</span> === <span class="s">&#x27;tick&#x27;</span>; }</pre></figure><figure class="file"><figcaption>client/echo/client.ts</figcaption><pre><span class="c">/** Typed client interface for echo plugin */</span>
+<span class="k">export</span> <span class="k">interface</span> <span class="t">EchoClient</span> {
+  <span class="c">/**
+   * Ticks from 1 up to `to`.
+   * @requires `echo.count` anywhere it is held
+   */</span>
+  count(to: <span class="t">number</span>): <span class="t">Promise</span>&lt;<span class="t">CountEvent</span>&gt;;
+  <span class="c">/**
+   * Get plugin or method schema. Pass {&quot;method&quot;: &quot;name&quot;} for a specific method.
+   * @requires `echo.schema` anywhere it is held
+   */</span>
+  schema(method?: <span class="t">string</span> | <span class="k">null</span>): <span class="t">Promise</span>&lt;<span class="t">SchemaResult</span>&gt;;
+}</pre></figure></section></div></div></main>
+<div class="end" id="end" translate="no"><a data-glass=".8,1,16" href="https://github.com/hypermemetic-ai/plexus-rpc">GitHub</a><a data-glass=".8,1,16" href="https://x.com/hypermemetic">@hypermemetic</a></div></div>
+<div id="spacer"></div>
+</div>
+<script src="main.js"></script>
+</body>
+</html>
