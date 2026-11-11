@@ -56,7 +56,11 @@ function web(){var w=cv.width/2,h=cv.height/2,s=uR*2.02,tiles=document.documentE
   gl.colorMask(true,true,true,true);gl.useProgram(down.p);gl.uniform1i(down.uS,0);gl.activeTexture(gl.TEXTURE0);
   [[A,Hf,1],[Hf,B,1],[B,B2,1]].forEach(function(s){into(s[1]);gl.bindTexture(gl.TEXTURE_2D,s[0].tx);gl.uniform2f(down.uO,s[2]/s[0].w,s[2]/s[0].h);quad(FULL);});}
 var GL=[].slice.call(document.querySelectorAll('[data-glass]')).reverse(),Q=new Float32Array(8);
-function draw(){var w=cv.width,h=cv.height;if(!A)return;if(webT!==t){web();webT=t;}
+// PLEXUS-63: the picture is as large as the canvas's box, checked here, each frame, and not only on the window's
+// resize: X's browser on a phone changes the page's height as its sheet moves and that event does not come, which
+// left the first picture stretched into the new box and every pane of glass drawn where it had been.
+function fits(){var r=cv.getBoundingClientRect();return Math.max(1,Math.round(r.width*d))===cv.width&&Math.max(1,Math.round(r.height*d))===cv.height;}
+function draw(){if(A&&!fits()){size();return;}var w=cv.width,h=cv.height;if(!A)return;if(webT!==t){web();webT=t;}
   into(null);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,B2.tx);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,A.tx);
   gl.useProgram(show.p);gl.uniform1i(show.uA,0);gl.uniform3fv(show.uInk,ink);gl.uniform3fv(show.uPaper,paper);gl.uniform3fv(show.uAcc,acc);quad(FULL);
   // each pane of glass, the last in the page first, so an earlier one lies over a later one
@@ -69,7 +73,8 @@ function draw(){var w=cv.width,h=cv.height;if(!A)return;if(webT!==t){web();webT=
   gl.disable(gl.BLEND);}
 var due=false;function soon(){if(due)return;due=true;requestAnimationFrame(function(){due=false;draw();});}
 window.__redraw=soon;window.__draw=function(){draw();};window.__step=function(){t+=.033;draw();};
-if('ResizeObserver' in window){var ro=new ResizeObserver(soon);GL.forEach(function(el){ro.observe(el);});}
+if('ResizeObserver' in window){var ro=new ResizeObserver(soon);GL.forEach(function(el){ro.observe(el);});ro.observe(cv);}
+if(window.visualViewport)visualViewport.addEventListener('resize',soon);
 // How hard the band works is a ladder: the frame rate first, then the picture's resolution. A frame that was
 // drawn and whose next callback came late is a slow one; when most of a batch are slow the band steps down a
 // rung, on purpose, so the page stays quick; one bad batch alone, a hitch, changes nothing. After a few seconds on
@@ -118,5 +123,8 @@ size();setRung(0);set(on);if(still)rate.hidden=true;
     pane.style.setProperty('--g','1');pane.style.setProperty('--e',0);var cs=getComputedStyle(sc);over=Math.max(0,Math.ceil(body.offsetHeight+parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom)-sc.clientHeight));
     PB=pane.getBoundingClientRect().bottom;spacer.style.height=(T+over+Math.ceil(PB)+40)+'px';g=-1;inner=-1;e=-1;paint();}
   track.addEventListener('scroll',ask,{passive:true});addEventListener('resize',measure);
+  // PLEXUS-63: and the scroll is measured again whenever the page's box changes, with or without that event
+  if('ResizeObserver' in window){var bw=-1,bh=-1;new ResizeObserver(function(){var w=track.clientWidth,h=track.clientHeight;if(w!==bw||h!==bh){bw=w;bh=h;measure();}}).observe(track);}
+  if(window.visualViewport)visualViewport.addEventListener('resize',measure);
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(measure);measure();
 })();
