@@ -1,0 +1,21 @@
+[package]
+name = "plexus-axon"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Signed distribution of the Axon command line for Plexus RPC"
+repository = "https://github.com/hypermemetic-ai/plexus-rpc"
+
+[[bin]]
+name = "axon"
+path = "src/main.rs"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/axon-v{ version }/axon-{ version }-{ target }.tar.gz"
+pkg-fmt = "tgz"
+bin-dir = "axon{ binary-ext }"
+disabled-strategies = ["quick-install", "compile"]
+
+[package.metadata.binstall.signing]
+algorithm = "minisign"
+pubkey = "RWS8sQuiXfDsroZa9OFMz3QcFVuYw0BFbL8cBsm3LUh1O2QBVUFjo7b4"
